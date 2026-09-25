@@ -21,7 +21,8 @@ export const Keyboard: React.FC = () => {
     targetingState,
     cancelTargeting,
     toggleProbeLetter,
-    executeProbe
+    executeProbe,
+    moveCursor
   } = useGameStore();
 
   const isProbeMode = targetingState?.skillId === 'sonda_circuito';
@@ -63,6 +64,16 @@ export const Keyboard: React.FC = () => {
         return;
       }
 
+      if (e.key === 'ArrowLeft') {
+        moveCursor('left');
+        return;
+      }
+
+      if (e.key === 'ArrowRight') {
+        moveCursor('right');
+        return;
+      }
+
       const key = e.key.toUpperCase();
       if (key === 'ENTER') {
         handleKeyPress('ENTER');
@@ -75,7 +86,7 @@ export const Keyboard: React.FC = () => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleKeyPress, targetingState, cancelTargeting]);
+  }, [handleKeyPress, targetingState, cancelTargeting, moveCursor]);
 
   const getKeyClasses = (key: string) => {
     const status: TileStatus = keyboardStatus[key];
@@ -83,7 +94,7 @@ export const Keyboard: React.FC = () => {
     const isSelectedInProbe = isProbeMode && selectedProbeLetters.includes(key);
 
     let base =
-      'relative h-12 sm:h-14 rounded-md font-mono font-bold text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-all duration-150 active:translate-y-1 shadow-[0_3px_0_0_#1c1917] ';
+      'relative h-10 sm:h-11 md:h-12 rounded-md font-mono font-bold text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-all duration-150 active:translate-y-0.5 shadow-[0_2px_0_0_#1c1917] ';
 
     if (isSelectedInProbe) {
       return (

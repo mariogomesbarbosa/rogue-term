@@ -22,7 +22,8 @@ interface GameState {
   targetWord: string;
   guesses: string[];
   evaluations: EvaluatedRow[];
-  currentGuess: string;
+  currentGuess: string[];
+  activeTileCol: number;
   gamePhase: GamePhase;
   activeSkills: SkillCard[];
   passives: SkillCard[];
@@ -36,6 +37,8 @@ interface GameState {
   // Ações
   startNewRun: () => void;
   startNextRound: () => void;
+  setActiveTileCol: (col: number) => void;
+  moveCursor: (direction: 'left' | 'right') => void;
   addLetter: (char: string) => void;
   removeLetter: () => void;
   submitGuess: () => void;
@@ -61,7 +64,8 @@ export const useGameStore = create<GameState>()(
       targetWord: getRandomTargetWord(),
       guesses: [],
       evaluations: [],
-      currentGuess: '',
+      currentGuess: ['', '', '', '', ''],
+      activeTileCol: 0,
       gamePhase: 'playing',
       // Começamos o jogador com o icônico Ctrl+Z e a Sonda de Circuito para testar na hora!
       activeSkills: [
@@ -87,7 +91,8 @@ export const useGameStore = create<GameState>()(
           targetWord: firstWord,
           guesses: [],
           evaluations: [],
-          currentGuess: '',
+          currentGuess: ['', '', '', '', ''],
+          activeTileCol: 0,
           gamePhase: 'playing',
           activeSkills: [
             { ...ALL_SKILLS.find(s => s.id === 'ctrl_z')! },
@@ -125,7 +130,8 @@ export const useGameStore = create<GameState>()(
           targetWord: nextWord,
           guesses: [],
           evaluations: [],
-          currentGuess: '',
+          currentGuess: ['', '', '', '', ''],
+          activeTileCol: 0,
           gamePhase: 'playing',
           draftChoices: [],
           keyboardStatus: newKeyboardStatus,
@@ -134,20 +140,65 @@ export const useGameStore = create<GameState>()(
         });
       },
 
+      setActiveTileCol: (col: number) => {
+        if (col >= 0 && col < 5) {
+          set({ activeTileCol: col });
+        }
+      },
+
+      moveCursor: (direction: 'left' | 'right') => {
+        const { activeTileCol } = get();
+        if (direction === 'left') {
+          set({ activeTileCol: Math.max(0, activeTileCol - 1) });
+        } else {
+          set({ activeTileCol: Math.min(4, activeTileCol + 1) });
+        }
+      },
+
       addLetter: (char: string) => {
-        const { currentGuess, gamePhase, targetingState } = get();
+        const { currentGuess, activeTileCol, gamePhase, targetingState } = get();
         if (gamePhase !== 'playing' || targetingState) return;
 
         const clean = normalizeWord(char);
-        if (/^[A-Z]$/.test(clean) && currentGuess.length < 5) {
-          set({ currentGuess: currentGuess + clean });
+        if (/^[A-Z]$/.test(clean)) {
+          const updatedGuess = [...currentGuess];
+          updatedGuess[activeTileCol] = clean;
+
+          // Encontra a próxima coluna vazia à direita ou a primeira vazia
+          let nextCol = activeTileCol + 1;
+          if (nextCol > 4) {
+            const firstEmpty = updatedGuess.findIndex(c => !c);
+            nextCol = firstEmpty !== -1 ? firstEmpty : 4;
+          } else if (updatedGuess[nextCol]) {
+            const nextEmpty = updatedGuess.findIndex((c, i) => i > activeTileCol && !c);
+            if (nextEmpty !== -1) {
+              nextCol = nextEmpty;
+            }
+          }
+
+          set({
+            currentGuess: updatedGuess,
+            activeTileCol: Math.min(4, Math.max(0, nextCol))
+          });
         }
       },
 
       removeLetter: () => {
-        const { currentGuess, gamePhase, targetingState } = get();
+        const { currentGuess, activeTileCol, gamePhase, targetingState } = get();
         if (gamePhase !== 'playing' || targetingState) return;
-        set({ currentGuess: currentGuess.slice(0, -1) });
+
+        const updatedGuess = [...currentGuess];
+
+        if (updatedGuess[activeTileCol]) {
+          // Se a posição atual tem letra, apaga ela e mantém o cursor aqui
+          updatedGuess[activeTileCol] = '';
+          set({ currentGuess: updatedGuess });
+        } else if (activeTileCol > 0) {
+          // Se a posição atual já está vazia, volta 1 posição e apaga a de trás
+          const prevCol = activeTileCol - 1;
+          updatedGuess[prevCol] = '';
+          set({ currentGuess: updatedGuess, activeTileCol: prevCol });
+        }
       },
 
       submitGuess: () => {
@@ -167,14 +218,16 @@ export const useGameStore = create<GameState>()(
 
         if (gamePhase !== 'playing') return;
 
-        if (currentGuess.length < 5) {
-          set({ notification: 'A palavra precisa ter 5 letras!', shakeBoard: true });
+        const guessWord = currentGuess.join('');
+
+        if (currentGuess.some(c => !c) || guessWord.length < 5) {
+          set({ notification: 'Preencha todas as 5 letras!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
         }
 
         // Validação no léxico
-        if (!isValidWord(currentGuess)) {
+        if (!isValidWord(guessWord)) {
           set({ notification: 'Palavra não encontrada no dicionário!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
@@ -182,7 +235,7 @@ export const useGameStore = create<GameState>()(
 
         // Checar passiva: Buffer de Teclado (Primeiro palpite grátis se acertar 2+ letras)
         const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
-        const evalStatuses = evaluateGuess(currentGuess, targetWord);
+        const evalStatuses = evaluateGuess(guessWord, targetWord);
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;
         const isFreeGuess = hasBuffer && guesses.length === 0 && correctOrPresentCount >= 2;
 
@@ -191,14 +244,14 @@ export const useGameStore = create<GameState>()(
 
         // Construir linha avaliada
         const evaluatedRow: EvaluatedRow = {
-          letters: currentGuess.split('').map((char, i) => ({
+          letters: guessWord.split('').map((char, i) => ({
             char,
             status: evalStatuses[i]
           })),
           submittedAt: Date.now()
         };
 
-        const newGuesses = [...guesses, currentGuess];
+        const newGuesses = [...guesses, guessWord];
         const newEvaluations = [...evaluations, evaluatedRow];
 
         // Atualizar status do teclado
@@ -217,7 +270,7 @@ export const useGameStore = create<GameState>()(
         });
 
         // Verificar vitória
-        const isWin = currentGuess === targetWord;
+        const isWin = guessWord === targetWord;
 
         if (isWin) {
           // Vitória da rodada!
@@ -271,7 +324,8 @@ export const useGameStore = create<GameState>()(
           set({
             guesses: newGuesses,
             evaluations: newEvaluations,
-            currentGuess: '',
+            currentGuess: ['', '', '', '', ''],
+            activeTileCol: 0,
             keys: newKeys,
             score: newScore,
             streak: newStreak,
@@ -288,7 +342,8 @@ export const useGameStore = create<GameState>()(
           set({
             guesses: newGuesses,
             evaluations: newEvaluations,
-            currentGuess: '',
+            currentGuess: ['', '', '', '', ''],
+            activeTileCol: 0,
             keys: 0,
             keyboardStatus: updatedKeyboard,
             gamePhase: 'game_over',
@@ -301,7 +356,8 @@ export const useGameStore = create<GameState>()(
         set({
           guesses: newGuesses,
           evaluations: newEvaluations,
-          currentGuess: '',
+          currentGuess: ['', '', '', '', ''],
+          activeTileCol: 0,
           keys: remainingKeys,
           keyboardStatus: updatedKeyboard,
           notification: isFreeGuess ? 'Buffer ativado! Tentativa grátis.' : null
