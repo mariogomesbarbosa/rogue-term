@@ -21,38 +21,38 @@ export const Header: React.FC = () => {
 
   return (
     // Visível apenas no Mobile / Telas pequenas. No Desktop, o BalatroSidebar assume essa função.
-    <header className="md:hidden w-full px-2 py-1 flex items-center justify-between gap-1.5 border-b border-stone-800/80 bg-stone-950/90 backdrop-blur-md z-20 font-mono text-xs select-none shrink-0">
+    <header className="md:hidden w-full px-2 py-1.5 flex items-center justify-between gap-1.5 border-b-3 border-black bg-[#0d0e14] z-20 font-pixel text-xs select-none shrink-0 shadow-[0_3px_0_#000]">
       {/* Título & Rodada */}
       <div className="flex items-center gap-1.5">
-        <KeycapIcon size="sm" label="T" glow />
-        <div className="flex flex-col leading-tight">
-          <span className="font-black text-amber-400 text-xs">ROGUE</span>
-          <span className="text-[9px] text-stone-400">R#{round}</span>
+        <KeycapIcon size="sm" glow />
+        <div className="flex flex-col leading-none">
+          <span className="font-bold text-amber-400 text-xs">ROGUE</span>
+          <span className="text-[8px] text-stone-400 font-bold">R#{round}</span>
         </div>
       </div>
 
       {/* Recurso Vital: Teclas [T] */}
       <div
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+        className={`flex items-center gap-1.5 px-2 py-1 border-2 border-black transition-all shadow-[0_2px_0_#000] ${
           isLowKeys
-            ? 'bg-rose-950/70 border-rose-500 animate-pulse text-rose-300'
-            : 'bg-stone-900 border-amber-500/50 text-amber-300'
+            ? 'bg-[#3b151b] border-rose-600 animate-pulse text-rose-300'
+            : 'bg-[#181926] text-amber-300'
         }`}
       >
-        <span className="text-[10px] text-stone-400">TECLAS:</span>
-        <span className={`font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
+        <span className="text-[9px] text-stone-400 font-bold">T:</span>
+        <span className={`font-bold ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
           {keys}
         </span>
-        <span className="text-[10px] text-stone-500">/{maxKeys}</span>
+        <span className="text-[9px] text-stone-500">/{maxKeys}</span>
       </div>
 
       {/* Pontuação & Streak */}
       <div className="flex items-center gap-1">
-        <div className="bg-stone-900 border border-stone-800 px-2 py-1 rounded-md text-stone-200">
-          <span className="text-amber-400 font-bold">{score.toLocaleString('pt-BR')}</span>
+        <div className="bg-[#181926] border-2 border-black px-2 py-1 text-stone-200 shadow-[0_2px_0_#000]">
+          <span className="text-amber-300 font-bold text-[10px]">{score.toLocaleString('pt-BR')}</span>
         </div>
         {streak > 1 && (
-          <div className="bg-amber-950/40 border border-amber-800 px-1.5 py-1 rounded-md flex items-center text-amber-400 text-[10px] font-bold">
+          <div className="bg-[#2e1d08] border border-amber-600 px-1 py-1 flex items-center text-amber-400 text-[9px] font-bold">
             <Flame className="w-3 h-3 text-amber-400 animate-pulse" />
             <span>{streak}x</span>
           </div>
@@ -63,10 +63,10 @@ export const Header: React.FC = () => {
       <div className="flex items-center gap-1">
         <button
           onClick={toggleCrt}
-          className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${
+          className={`p-1.5 border border-black text-[9px] font-pixel transition-transform active:translate-y-0.5 cursor-pointer shadow-[0_2px_0_#000] ${
             crtEnabled
-              ? 'bg-emerald-950/40 border-emerald-600/70 text-emerald-400'
-              : 'bg-stone-900 border-stone-800 text-stone-400'
+              ? 'bg-emerald-700 border-emerald-400 text-emerald-100'
+              : 'bg-[#222433] text-stone-400'
           }`}
           title="Alternar filtro CRT"
         >
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
               startNewRun();
             }
           }}
-          className="p-1.5 rounded bg-stone-900 border border-stone-800 text-stone-400 hover:text-rose-400"
+          className="p-1.5 bg-[#2a1818] border border-rose-900 text-rose-300 hover:text-rose-200 active:translate-y-0.5 cursor-pointer shadow-[0_2px_0_#000]"
           title="Reiniciar Run"
         >
           <RotateCcw className="w-3.5 h-3.5" />

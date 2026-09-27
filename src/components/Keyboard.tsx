@@ -95,71 +95,86 @@ export const Keyboard: React.FC = () => {
     const isSelectedInProbe = isProbeMode && selectedProbeLetters.includes(key);
 
     let base =
-      'relative h-10 sm:h-11 md:h-12 rounded-md font-mono font-bold text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-all duration-150 active:translate-y-0.5 shadow-[0_2px_0_0_#1c1917] ';
+      'relative h-10 sm:h-11 md:h-12 font-pixel font-bold text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-transform duration-75 active:translate-y-1 ';
 
     if (isSelectedInProbe) {
       return (
         base +
-        'w-8 sm:w-10 md:w-11 bg-cyan-950 border-2 border-cyan-400 text-cyan-200 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+        'w-8 sm:w-10 md:w-11 bg-cyan-900 border-2 border-cyan-300 text-cyan-100 shadow-[0_4px_0_#083344] scale-105'
       );
     }
 
     if (isEnter) {
-      base += 'w-12 sm:w-[60px] md:w-[66px] bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
+      base += 'w-12 sm:w-[60px] md:w-[66px] text-[10px] sm:text-xs ';
     } else if (isBackspace) {
-      base += 'w-8 sm:w-10 md:w-11 bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
+      base += 'w-8 sm:w-10 md:w-11 text-[10px] sm:text-xs ';
     } else {
       base += 'w-8 sm:w-10 md:w-11 ';
     }
 
-    // Estilos de status
+    // Estilos de status com chanfro pixel art e relevo de botão físico 16-bits
     switch (status) {
       case 'correct':
         return (
           base +
-          'bg-emerald-600 border border-emerald-400 text-emerald-100 shadow-[0_3px_0_0_#065f46,0_0_12px_rgba(16,185,129,0.3)]'
+          'bg-emerald-600 border-t-2 border-l-2 border-t-emerald-300 border-l-emerald-300 border-r-2 border-b-2 border-r-emerald-950 border-b-emerald-950 text-emerald-100 shadow-[0_4px_0_#022c22]'
         );
       case 'present':
         return (
           base +
-          'bg-amber-600 border border-amber-400 text-amber-100 shadow-[0_3px_0_0_#92400e,0_0_12px_rgba(245,158,11,0.3)]'
+          'bg-amber-600 border-t-2 border-l-2 border-t-amber-300 border-l-amber-300 border-r-2 border-b-2 border-r-amber-950 border-b-amber-950 text-amber-100 shadow-[0_4px_0_#451a03]'
         );
       case 'probed_hit':
-        // Acerto da Sonda: Ciano Neon Elétrico Radar
+        // Acerto da Sonda: Ciano Neon Arcade
         return (
           base +
-          'bg-cyan-600/90 border-2 border-cyan-300 text-cyan-50 shadow-[0_3px_0_0_#0e7490,0_0_16px_rgba(6,182,212,0.6)] animate-pulse'
+          'bg-cyan-600 border-t-2 border-l-2 border-t-cyan-300 border-l-cyan-300 border-r-2 border-b-2 border-r-cyan-950 border-b-cyan-950 text-cyan-50 shadow-[0_4px_0_#083344] animate-pulse'
         );
       case 'probed_miss':
         // Erro da Sonda: Descartada pelo radar
         return (
           base +
-          'bg-stone-900 border border-cyan-950/70 text-stone-600 opacity-40 shadow-none'
+          'bg-[#12131c] border-2 border-stone-850 text-stone-600 opacity-40 shadow-none'
         );
       case 'absent':
-        return base + 'bg-stone-900 border border-stone-800 text-stone-600 opacity-60';
+        return (
+          base +
+          'bg-[#14151e] border-2 border-stone-850 text-stone-600 opacity-50 shadow-none'
+        );
       default:
+        if (isEnter) {
+          return (
+            base +
+            'bg-amber-500 hover:bg-amber-400 border-t-2 border-l-2 border-t-amber-200 border-l-amber-200 border-r-2 border-b-2 border-r-amber-900 border-b-amber-900 text-stone-950 font-bold shadow-[0_4px_0_#78350f]'
+          );
+        }
+        if (isBackspace) {
+          return (
+            base +
+            'bg-[#3a2020] hover:bg-[#4d2a2a] border-t-2 border-l-2 border-t-rose-400 border-l-rose-400 border-r-2 border-b-2 border-r-rose-950 border-b-rose-950 text-rose-200 shadow-[0_4px_0_#4c0519]'
+          );
+        }
         return (
           base +
           (isProbeMode
-            ? 'bg-stone-800 border-2 border-dashed border-cyan-500/50 text-cyan-200 hover:border-cyan-400 hover:bg-cyan-950/40'
-            : 'bg-gradient-to-b from-stone-700 via-stone-800 to-stone-900 border border-stone-600/60 text-stone-200 hover:border-stone-500')
+            ? 'bg-[#1b2230] border-2 border-dashed border-cyan-400 text-cyan-200 hover:bg-cyan-950 shadow-[0_4px_0_#000]'
+            : 'bg-[#252736] hover:bg-[#2e3144] border-t-2 border-l-2 border-t-stone-500 border-l-stone-500 border-r-2 border-b-2 border-r-black border-b-black text-stone-100 shadow-[0_4px_0_#000]')
         );
     }
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto px-2 flex flex-col gap-1.5 sm:gap-2 select-none z-10">
-      {/* Banner de Controle da Sonda de Circuito */}
+    <div className="w-full max-w-xl mx-auto px-2 flex flex-col gap-1.5 sm:gap-2 select-none z-10 font-pixel">
+      {/* Banner de Controle da Sonda de Circuito - Estilo Scanner Radar 16-bits */}
       {isProbeMode && (
-        <div className="mb-2 p-2.5 rounded-xl bg-cyan-950/95 border border-cyan-400 text-cyan-200 text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] backdrop-blur-md">
+        <div className="mb-2 p-2.5 bg-[#091f2c] border-2 border-cyan-400 text-cyan-200 text-xs font-pixel flex flex-wrap items-center justify-between gap-2 shadow-[0_4px_0_#000]">
           <div className="flex items-center gap-2">
             <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
             <span className="font-bold">
-              SONDA: Selecione 3 letras no teclado ({selectedProbeLetters.length}/3)
+              SONDA: SELECIONE 3 LETRAS ({selectedProbeLetters.length}/3)
             </span>
             {selectedProbeLetters.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded bg-cyan-900 border border-cyan-500 font-black text-cyan-100">
+              <span className="px-1.5 py-0.5 bg-cyan-950 border border-cyan-400 font-bold text-cyan-100">
                 [{selectedProbeLetters.join(', ')}]
               </span>
             )}

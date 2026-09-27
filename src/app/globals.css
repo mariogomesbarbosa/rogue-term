@@ -22,6 +22,39 @@
   }
 }
 
+/* Tipografia e Estilos Pixel Art 16-bits */
+.font-pixel {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.05em;
+}
+
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Moldura e caixas estilo 16-bits RPG / Arcade */
+.pixel-panel {
+  background-color: #12131c;
+  border: 3px solid #000000;
+  box-shadow: 
+    inset 2px 2px 0px rgba(255, 255, 255, 0.15),
+    inset -2px -2px 0px rgba(0, 0, 0, 0.6),
+    0 4px 0 rgba(0, 0, 0, 0.7);
+}
+
+.pixel-key {
+  position: relative;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  box-shadow: 0 4px 0 #000000;
+}
+
+.pixel-key:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #000000;
+}
+
 /* Ocultar barra de rolagem */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -30,3 +63,4 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
