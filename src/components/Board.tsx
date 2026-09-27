@@ -12,6 +12,7 @@ export const Board: React.FC = () => {
     currentGuess,
     activeTileCol,
     setActiveTileCol,
+    gamePhase,
     shakeBoard,
     targetingState,
     cancelTargeting,
@@ -23,8 +24,8 @@ export const Board: React.FC = () => {
   const [selectedLetterPos, setSelectedLetterPos] = useState<{ row: number; col: number } | null>(null);
   const [replacementChar, setReplacementChar] = useState('');
 
-  // Total de linhas para renderizar (mínimo 6)
-  const totalRows = Math.max(6, evaluations.length + 1);
+  // Total de linhas para renderizar (padrão de 6 tentativas, com suporte a mais linhas via scroll)
+  const totalRows = Math.max(6, evaluations.length + (gamePhase === 'playing' ? 1 : 0));
   const rows = Array.from({ length: totalRows });
 
   const getTileClasses = (
@@ -35,7 +36,7 @@ export const Board: React.FC = () => {
     isCurrentRow: boolean
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
-    let base =
+    const base =
       'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 lg:w-14 lg:h-14 flex items-center justify-center font-mono font-black text-xl sm:text-2xl md:text-3xl rounded-lg select-none uppercase transition-all duration-200 relative ';
 
     if (isSelected) {
@@ -154,7 +155,7 @@ export const Board: React.FC = () => {
       <motion.div
         animate={shakeBoard ? { x: [-10, 10, -6, 6, -3, 3, 0] } : {}}
         transition={{ duration: 0.35 }}
-        className="grid grid-rows-6 gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl bg-stone-900/40 border border-stone-800/80 shadow-[0_6px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm"
+        className="flex flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl bg-stone-900/40 border border-stone-800/80 shadow-[0_6px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm max-h-[50dvh] sm:max-h-[55dvh] overflow-y-auto no-scrollbar"
       >
         {rows.map((_, rowIndex) => {
           const isEvaluated = rowIndex < evaluations.length;
@@ -254,7 +255,7 @@ export const Board: React.FC = () => {
                 onClick={handleConfirmReplacement}
                 className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:pointer-events-none text-white font-bold text-xs flex items-center justify-center gap-1 transition-colors"
               >
-                <Check className="w-3.5 h-3.5" /> Trocar por '{replacementChar}'
+                <Check className="w-3.5 h-3.5" /> Trocar por &lsquo;{replacementChar}&rsquo;
               </button>
               <button
                 onClick={() => setSelectedLetterPos(null)}

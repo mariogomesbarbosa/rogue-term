@@ -2,14 +2,19 @@
 
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { KeycapIcon } from './KeycapIcon';
-import { RotateCcw, Trophy, Skull } from 'lucide-react';
+import { RotateCcw, Skull } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const GameOverModal: React.FC = () => {
-  const { gamePhase, targetWord, round, score, streak, startNewRun } = useGameStore();
+  const { gamePhase, targetWord, round, score, streak, keys, startNewRun } = useGameStore();
 
   if (gamePhase !== 'game_over') return null;
+
+  const isOutOfKeys = keys <= 0;
+  const title = isOutOfKeys ? 'TECLAS ESGOTADAS' : 'TENTATIVAS ESGOTADAS';
+  const subtitle = isOutOfKeys
+    ? 'Suas Teclas [T] acabaram antes de decifrar o código.'
+    : 'Você preencheu todas as 6 linhas do grid sem acertar a palavra.';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
@@ -24,10 +29,10 @@ export const GameOverModal: React.FC = () => {
 
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl sm:text-3xl font-black text-rose-400 tracking-wider">
-            TECLAS ESGOTADAS
+            {title}
           </h2>
           <p className="text-xs text-stone-400">
-            Sua máquina de escrever não resistiu à pressão léxica.
+            {subtitle}
           </p>
         </div>
 

@@ -381,6 +381,21 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
+        // Verificar derrota por limite de 6 tentativas preenchidas no grid
+        if (newGuesses.length >= 6) {
+          set({
+            guesses: newGuesses,
+            evaluations: newEvaluations,
+            currentGuess: ['', '', '', '', ''],
+            activeTileCol: 0,
+            keys: remainingKeys,
+            keyboardStatus: updatedKeyboard,
+            gamePhase: 'game_over',
+            notification: `Tentativas esgotadas! A palavra era ${targetWord}.`
+          });
+          return;
+        }
+
         // Verificar derrota por falta de Teclas
         if (remainingKeys <= 0) {
           set({
