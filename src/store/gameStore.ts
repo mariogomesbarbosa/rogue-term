@@ -735,7 +735,23 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'rogue-term-storage',
+      version: 1,
       partialize: state => ({
+        keys: state.keys,
+        maxKeys: state.maxKeys,
+        score: state.score,
+        round: state.round,
+        streak: state.streak,
+        targetWord: state.targetWord,
+        guesses: state.guesses,
+        evaluations: state.evaluations,
+        currentGuess: state.currentGuess,
+        activeTileCol: state.activeTileCol,
+        gamePhase: state.gamePhase,
+        activeSkills: state.activeSkills,
+        passives: state.passives,
+        draftChoices: state.draftChoices,
+        keyboardStatus: state.keyboardStatus,
         crtEnabled: state.crtEnabled
       })
     }
