@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { SkillCard, Rarity } from '@/types/game';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   RotateCcw,
   Cpu,
@@ -15,7 +15,9 @@ import {
   Coins,
   Zap,
   Activity,
-  Layers
+  Layers,
+  X,
+  Info
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -61,6 +63,7 @@ const RARITY_STYLES: Record<Rarity, { border: string; badge: string; text: strin
 
 export const SkillsBar: React.FC = () => {
   const { activeSkills, passives, activateSkill, targetingState, gamePhase } = useGameStore();
+  const [selectedPassive, setSelectedPassive] = useState<SkillCard | null>(null);
 
   const handleCardClick = (card: SkillCard) => {
     if (gamePhase !== 'playing') return;
@@ -138,23 +141,91 @@ export const SkillsBar: React.FC = () => {
           {passives.map(passive => {
             const style = RARITY_STYLES[passive.rarity];
             return (
-              <div
+              <motion.button
                 key={passive.id}
-                className={`rounded-lg px-2 py-0.5 sm:py-1 border flex items-center gap-1.5 bg-stone-950/80 shrink-0 ${style.border}`}
+                whileHover={{ scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedPassive(passive)}
+                className={`rounded-lg px-2 py-0.5 sm:py-1 border flex items-center gap-1.5 bg-stone-950/80 shrink-0 cursor-pointer transition-all ${style.border}`}
                 title={passive.description}
+                type="button"
+                aria-label={`Ver detalhes da passiva ${passive.name}`}
               >
                 <div className="text-stone-300">{ICON_MAP[passive.iconName] || <Shield className="w-3 h-3" />}</div>
-                <div className="flex flex-col">
+                <div className="flex flex-col text-left">
                   <span className="text-[10px] font-bold text-stone-200 truncate max-w-[80px] sm:max-w-[120px]">
                     {passive.name.split(' ')[0]}
                   </span>
                   <span className="text-[7px] text-cyan-400 uppercase font-semibold">PASSIVA</span>
                 </div>
-              </div>
+              </motion.button>
             );
           })}
         </div>
       )}
+
+      {/* Modal / Popover de Descrição de Item Passivo (Especialmente para mobile) */}
+      <AnimatePresence>
+        {selectedPassive && (
+          <div
+            onClick={() => setSelectedPassive(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm select-none"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 12 }}
+              onClick={e => e.stopPropagation()}
+              className={`max-w-xs w-full bg-stone-900 border-2 rounded-xl p-4 shadow-[0_0_35px_rgba(0,0,0,0.9)] flex flex-col gap-2.5 font-mono ${RARITY_STYLES[selectedPassive.rarity].border}`}
+            >
+              <div className="flex items-center justify-between border-b border-stone-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="text-amber-400">
+                    {ICON_MAP[selectedPassive.iconName] || <Shield className="w-4 h-4" />}
+                  </div>
+                  <span className="font-black text-sm text-stone-100">
+                    {selectedPassive.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedPassive(null)}
+                  className="p-1 rounded bg-stone-800 text-stone-400 hover:text-stone-200"
+                  aria-label="Fechar detalhes"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className={`uppercase font-extrabold px-1.5 py-0.5 rounded ${RARITY_STYLES[selectedPassive.rarity].badge}`}>
+                  {selectedPassive.rarity}
+                </span>
+                <span className="text-cyan-400 font-bold uppercase tracking-wider text-[9px]">
+                  HABILIDADE PASSIVA
+                </span>
+              </div>
+
+              {selectedPassive.tagline && (
+                <p className="text-xs text-amber-300/90 italic font-semibold">
+                  &ldquo;{selectedPassive.tagline}&rdquo;
+                </p>
+              )}
+
+              <p className="text-xs text-stone-300 leading-relaxed bg-stone-950/70 p-3 rounded-lg border border-stone-800">
+                {selectedPassive.description}
+              </p>
+
+              <button
+                onClick={() => setSelectedPassive(null)}
+                className="w-full py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Info className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Fechar</span>
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
