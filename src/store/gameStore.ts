@@ -53,6 +53,111 @@ interface GameState {
   setNotification: (msg: string | null) => void;
 }
 
+function updateKeyboardStatus(
+  currentKeyboard: Record<string, TileStatus>,
+  evaluatedRow: EvaluatedRow
+): Record<string, TileStatus> {
+  const updated = { ...currentKeyboard };
+  evaluatedRow.letters.forEach(({ char, status }) => {
+    const currentStatus = updated[char];
+    if (status === 'correct') {
+      updated[char] = 'correct';
+    } else if (status === 'present' && currentStatus !== 'correct') {
+      updated[char] = 'present';
+    } else if (status === 'absent') {
+      if (currentStatus !== 'correct' && currentStatus !== 'present' && currentStatus !== 'probed_hit') {
+        updated[char] = 'absent';
+      }
+    }
+  });
+  return updated;
+}
+
+interface RoundWinParams {
+  state: GameState;
+  newGuesses: string[];
+  newEvaluations: EvaluatedRow[];
+  updatedKeyboard: Record<string, TileStatus>;
+  updatedSkills?: SkillCard[];
+  guessIndex: number;
+  remainingKeys: number;
+  customWinMessage?: string;
+}
+
+function calculateRoundWinState({
+  state,
+  newGuesses,
+  newEvaluations,
+  updatedKeyboard,
+  updatedSkills,
+  guessIndex,
+  remainingKeys,
+  customWinMessage
+}: RoundWinParams): Partial<GameState> {
+  try {
+    confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+  } catch {
+    // No-op if confetti fails
+  }
+
+  const { targetWord, passives, maxKeys, round, streak, score, activeSkills } = state;
+
+  // Cálculo de Teclas restauradas
+  let keysRestored = 2;
+  if (guessIndex === 1) keysRestored = 6;
+  else if (guessIndex === 2) keysRestored = 5;
+  else if (guessIndex === 3) keysRestored = 4;
+  else if (guessIndex === 4) keysRestored = 3;
+
+  // Passiva: Switch Dourado (Letras raras dão +2 teclas extras)
+  const hasGoldSwitch = passives.some(p => p.id === 'switch_dourado');
+  const hasRareLetter = /[XZKWYJ]/.test(targetWord);
+  if (hasGoldSwitch && hasRareLetter) {
+    keysRestored += 2;
+  }
+
+  const newKeys = Math.min(maxKeys, remainingKeys + keysRestored);
+
+  // Cálculo de Pontuação
+  const basePoints = round * 1000 + (6 - Math.min(6, guessIndex)) * 250;
+  let multiplier = 1.0;
+  if (guessIndex === 1) multiplier = 4.0;
+  else if (guessIndex === 2) multiplier = 2.5;
+  else if (guessIndex === 3) multiplier = 1.8;
+
+  // Passiva: RGB Sincronizado
+  const hasRgb = passives.some(p => p.id === 'rgb_sincronizado');
+  if (hasRgb) {
+    multiplier += (streak + 1) * 0.3;
+  }
+
+  const roundPoints = Math.round(basePoints * multiplier);
+  const newScore = score + roundPoints;
+  const newStreak = streak + 1;
+
+  const currentSkills = updatedSkills || activeSkills;
+  const draftChoices = getRandomDraftChoices(3, [
+    ...currentSkills.map(s => s.id),
+    ...passives.map(s => s.id)
+  ]);
+
+  return {
+    guesses: newGuesses,
+    evaluations: newEvaluations,
+    currentGuess: ['', '', '', '', ''],
+    activeTileCol: 0,
+    keys: newKeys,
+    score: newScore,
+    streak: newStreak,
+    keyboardStatus: updatedKeyboard,
+    draftChoices,
+    gamePhase: 'drafting',
+    targetingState: null,
+    ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
+    notification: customWinMessage || `Excelente! +${keysRestored} Teclas [T] recuperadas! +${roundPoints} Pontos.`
+  };
+}
+
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
@@ -108,7 +213,7 @@ export const useGameStore = create<GameState>()(
       },
 
       startNextRound: () => {
-        const { targetWord: prevTarget, evaluations, passives, round } = get();
+        const { evaluations, passives, round } = get();
         const nextWord = getRandomTargetWord();
         const nextRound = round + 1;
 
@@ -210,10 +315,7 @@ export const useGameStore = create<GameState>()(
           keys,
           gamePhase,
           keyboardStatus,
-          passives,
-          streak,
-          score,
-          round
+          passives
         } = get();
 
         if (gamePhase !== 'playing') return;
@@ -255,85 +357,21 @@ export const useGameStore = create<GameState>()(
         const newEvaluations = [...evaluations, evaluatedRow];
 
         // Atualizar status do teclado
-        const updatedKeyboard = { ...keyboardStatus };
-        evaluatedRow.letters.forEach(({ char, status }) => {
-          const currentStatus = updatedKeyboard[char];
-          if (status === 'correct') {
-            updatedKeyboard[char] = 'correct';
-          } else if (status === 'present' && currentStatus !== 'correct') {
-            updatedKeyboard[char] = 'present';
-          } else if (status === 'absent') {
-            if (currentStatus !== 'correct' && currentStatus !== 'present' && currentStatus !== 'probed_hit') {
-              updatedKeyboard[char] = 'absent';
-            }
-          }
-        });
+        const updatedKeyboard = updateKeyboardStatus(keyboardStatus, evaluatedRow);
 
         // Verificar vitória
         const isWin = guessWord === targetWord;
 
         if (isWin) {
-          // Vitória da rodada!
-          try {
-            confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
-          } catch {
-            // No-op if confetti fails
-          }
-
-          // Cálculo de Teclas restauradas
-          const guessIndex = newGuesses.length; // 1, 2, 3...
-          let keysRestored = 2;
-          if (guessIndex === 1) keysRestored = 6;
-          else if (guessIndex === 2) keysRestored = 5;
-          else if (guessIndex === 3) keysRestored = 4;
-          else if (guessIndex === 4) keysRestored = 3;
-
-          // Passiva: Switch Dourado (Letras raras dão +2 teclas extras)
-          const hasGoldSwitch = passives.some(p => p.id === 'switch_dourado');
-          const hasRareLetter = /[XZKWYJ]/.test(targetWord);
-          if (hasGoldSwitch && hasRareLetter) {
-            keysRestored += 2;
-          }
-
-          const { maxKeys } = get();
-          const newKeys = Math.min(maxKeys, remainingKeys + keysRestored);
-
-          // Cálculo de Pontuação
-          const basePoints = round * 1000 + (6 - Math.min(6, guessIndex)) * 250;
-          let multiplier = 1.0;
-          if (guessIndex === 1) multiplier = 4.0;
-          else if (guessIndex === 2) multiplier = 2.5;
-          else if (guessIndex === 3) multiplier = 1.8;
-
-          // Passiva: RGB Sincronizado
-          const hasRgb = passives.some(p => p.id === 'rgb_sincronizado');
-          if (hasRgb) {
-            multiplier += (streak + 1) * 0.3;
-          }
-
-          const roundPoints = Math.round(basePoints * multiplier);
-          const newScore = score + roundPoints;
-          const newStreak = streak + 1;
-
-          // Gerar escolhas do Draft
-          const draftChoices = getRandomDraftChoices(3, [
-            ...get().activeSkills.map(s => s.id),
-            ...get().passives.map(s => s.id)
-          ]);
-
-          set({
-            guesses: newGuesses,
-            evaluations: newEvaluations,
-            currentGuess: ['', '', '', '', ''],
-            activeTileCol: 0,
-            keys: newKeys,
-            score: newScore,
-            streak: newStreak,
-            keyboardStatus: updatedKeyboard,
-            draftChoices,
-            gamePhase: 'drafting',
-            notification: `Excelente! +${keysRestored} Teclas [T] recuperadas! +${roundPoints} Pontos.`
+          const winState = calculateRoundWinState({
+            state: get(),
+            newGuesses,
+            newEvaluations,
+            updatedKeyboard,
+            guessIndex: newGuesses.length,
+            remainingKeys
           });
+          set(winState);
           return;
         }
 
@@ -552,7 +590,7 @@ export const useGameStore = create<GameState>()(
       },
 
       applyRetroEdit: (rowIndex: number, colIndex: number, newChar: string) => {
-        const { evaluations, guesses, targetWord, activeSkills } = get();
+        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys } = get();
         const cleanChar = normalizeWord(newChar);
 
         if (!/^[A-Z]$/.test(cleanChar)) return;
@@ -582,17 +620,36 @@ export const useGameStore = create<GameState>()(
           s.id === 'ctrl_z' ? { ...s, chargesCurrent: Math.max(0, s.chargesCurrent - 1) } : s
         );
 
+        const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
+
+        // Se a palavra editada acertou a palavra secreta!
+        if (updatedGuess === targetWord) {
+          const winState = calculateRoundWinState({
+            state: get(),
+            newGuesses,
+            newEvaluations,
+            updatedKeyboard,
+            updatedSkills,
+            guessIndex: newGuesses.length,
+            remainingKeys: keys,
+            customWinMessage: `Incrível! Palavra decifrada com Ctrl+Z (Retro-Edição)!`
+          });
+          set(winState);
+          return;
+        }
+
         set({
           guesses: newGuesses,
           evaluations: newEvaluations,
           activeSkills: updatedSkills,
+          keyboardStatus: updatedKeyboard,
           targetingState: null,
           notification: `Retro-Edição aplicada! Posição ${colIndex + 1} alterada para '${cleanChar}'. Cores recalculadas!`
         });
       },
 
       applySwapLetters: (rowIndex: number, col1: number, col2: number) => {
-        const { evaluations, guesses, targetWord, activeSkills } = get();
+        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys } = get();
         const targetGuess = guesses[rowIndex];
         const chars = targetGuess.split('');
         const temp = chars[col1];
@@ -619,10 +676,29 @@ export const useGameStore = create<GameState>()(
           s.id === 'anagramador' ? { ...s, chargesCurrent: Math.max(0, s.chargesCurrent - 1) } : s
         );
 
+        const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
+
+        // Se a palavra permutada acertou a palavra secreta!
+        if (updatedGuess === targetWord) {
+          const winState = calculateRoundWinState({
+            state: get(),
+            newGuesses,
+            newEvaluations,
+            updatedKeyboard,
+            updatedSkills,
+            guessIndex: newGuesses.length,
+            remainingKeys: keys,
+            customWinMessage: `Incrível! Palavra decifrada com Shift Swap!`
+          });
+          set(winState);
+          return;
+        }
+
         set({
           guesses: newGuesses,
           evaluations: newEvaluations,
           activeSkills: updatedSkills,
+          keyboardStatus: updatedKeyboard,
           targetingState: null,
           notification: `Shift Swap aplicado! Letras permutadas na linha ${rowIndex + 1}.`
         });
