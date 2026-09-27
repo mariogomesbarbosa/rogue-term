@@ -7,8 +7,8 @@ import { Delete, CornerDownLeft, Radio, X } from 'lucide-react';
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'BACKSPACE'],
+  ['Z', 'X', 'C', 'V', 'B', 'N', 'M', 'ENTER']
 ];
 
 export const Keyboard: React.FC = () => {
@@ -90,7 +90,8 @@ export const Keyboard: React.FC = () => {
 
   const getKeyClasses = (key: string) => {
     const status: TileStatus = keyboardStatus[key];
-    const isSpecial = key === 'ENTER' || key === 'BACKSPACE';
+    const isEnter = key === 'ENTER';
+    const isBackspace = key === 'BACKSPACE';
     const isSelectedInProbe = isProbeMode && selectedProbeLetters.includes(key);
 
     let base =
@@ -103,8 +104,10 @@ export const Keyboard: React.FC = () => {
       );
     }
 
-    if (isSpecial) {
-      base += 'px-2.5 sm:px-4 bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
+    if (isEnter) {
+      base += 'w-12 sm:w-[60px] md:w-[66px] bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
+    } else if (isBackspace) {
+      base += 'w-8 sm:w-10 md:w-11 bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
     } else {
       base += 'w-8 sm:w-10 md:w-11 ';
     }
@@ -191,6 +194,13 @@ export const Keyboard: React.FC = () => {
       {/* Linhas do Teclado */}
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
+          {/* Espaçador invisível na linha 3 para centralizar as teclas e alinhar ENVIAR com BACKSPACE */}
+          {rowIndex === 2 && (
+            <div
+              aria-hidden="true"
+              className="w-12 sm:w-[60px] md:w-[66px] pointer-events-none select-none invisible"
+            />
+          )}
           {row.map(key => {
             const isEnter = key === 'ENTER';
             const isBackspace = key === 'BACKSPACE';
@@ -202,6 +212,20 @@ export const Keyboard: React.FC = () => {
                 onClick={() => handleKeyPress(key)}
                 className={getKeyClasses(key)}
                 type="button"
+                aria-label={
+                  isEnter
+                    ? 'Enviar palpite'
+                    : isBackspace
+                    ? 'Apagar letra'
+                    : `Letra ${key}`
+                }
+                title={
+                  isEnter
+                    ? 'Enviar palpite (Enter)'
+                    : isBackspace
+                    ? 'Apagar letra (Backspace)'
+                    : undefined
+                }
               >
                 {/* Badge visual de acerto da Sonda (Radar Ciano) */}
                 {status === 'probed_hit' && (
@@ -216,9 +240,9 @@ export const Keyboard: React.FC = () => {
                 )}
 
                 {isEnter ? (
-                  <span className="flex items-center gap-1">
-                    <CornerDownLeft className="w-3.5 h-3.5" />
-                    <span>ENVIAR</span>
+                  <span className="flex items-center justify-center gap-1">
+                    <CornerDownLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">ENVIAR</span>
                   </span>
                 ) : isBackspace ? (
                   <Delete className="w-4 h-4 sm:w-5 sm:h-5" />
