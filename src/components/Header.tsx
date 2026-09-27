@@ -21,38 +21,38 @@ export const Header: React.FC = () => {
 
   return (
     // Visível apenas no Mobile / Telas pequenas. No Desktop, o BalatroSidebar assume essa função.
-    <header className="md:hidden w-full px-2 py-1.5 flex items-center justify-between gap-1.5 border-b-2 border-stone-800 bg-[#0d0e12] backdrop-blur-md z-20 font-mono text-xs select-none shrink-0 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+    <header className="md:hidden w-full px-2 py-1 flex items-center justify-between gap-1.5 border-b border-stone-800/80 bg-stone-950/90 backdrop-blur-md z-20 font-mono text-xs select-none shrink-0">
       {/* Título & Rodada */}
       <div className="flex items-center gap-1.5">
         <KeycapIcon size="sm" label="T" glow />
         <div className="flex flex-col leading-tight">
-          <span className="font-black text-amber-400 text-xs tracking-wider">ROGUE-TERM</span>
-          <span className="text-[8px] text-stone-400 font-bold">R#{round} {'//'} CHASSIS</span>
+          <span className="font-black text-amber-400 text-xs">ROGUE</span>
+          <span className="text-[9px] text-stone-400">R#{round}</span>
         </div>
       </div>
 
       {/* Recurso Vital: Teclas [T] */}
       <div
-        className={`flex items-center gap-1.5 px-2 py-1 rounded border-2 transition-all ${
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
           isLowKeys
             ? 'bg-rose-950/70 border-rose-500 animate-pulse text-rose-300'
-            : 'bg-[#15161c] border-amber-500/60 text-amber-300'
+            : 'bg-stone-900 border-amber-500/50 text-amber-300'
         }`}
       >
-        <span className="text-[9px] text-stone-400 font-bold">T:</span>
-        <span className={`font-black ${isLowKeys ? 'text-rose-400 drop-shadow-[0_0_6px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_6px_#f59e0b]'}`}>
+        <span className="text-[10px] text-stone-400">TECLAS:</span>
+        <span className={`font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
           {keys}
         </span>
-        <span className="text-[9px] text-stone-500">/{maxKeys}</span>
+        <span className="text-[10px] text-stone-500">/{maxKeys}</span>
       </div>
 
       {/* Pontuação & Streak */}
       <div className="flex items-center gap-1">
-        <div className="bg-[#15161c] border border-stone-800 px-2 py-1 rounded text-stone-200">
-          <span className="text-amber-300 font-bold">{score.toLocaleString('pt-BR')}</span>
+        <div className="bg-stone-900 border border-stone-800 px-2 py-1 rounded-md text-stone-200">
+          <span className="text-amber-400 font-bold">{score.toLocaleString('pt-BR')}</span>
         </div>
         {streak > 1 && (
-          <div className="bg-amber-950/40 border border-amber-800 px-1.5 py-1 rounded flex items-center text-amber-400 text-[10px] font-bold">
+          <div className="bg-amber-950/40 border border-amber-800 px-1.5 py-1 rounded-md flex items-center text-amber-400 text-[10px] font-bold">
             <Flame className="w-3 h-3 text-amber-400 animate-pulse" />
             <span>{streak}x</span>
           </div>
@@ -63,10 +63,10 @@ export const Header: React.FC = () => {
       <div className="flex items-center gap-1">
         <button
           onClick={toggleCrt}
-          className={`p-1.5 rounded border text-[10px] font-mono transition-colors cursor-pointer ${
+          className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${
             crtEnabled
-              ? 'bg-emerald-950/60 border-emerald-500/80 text-emerald-300'
-              : 'bg-[#15161c] border-stone-800 text-stone-400'
+              ? 'bg-emerald-950/40 border-emerald-600/70 text-emerald-400'
+              : 'bg-stone-900 border-stone-800 text-stone-400'
           }`}
           title="Alternar filtro CRT"
         >
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
               startNewRun();
             }
           }}
-          className="p-1.5 rounded bg-[#15161c] border border-stone-800 text-stone-400 hover:text-rose-400 cursor-pointer"
+          className="p-1.5 rounded bg-stone-900 border border-stone-800 text-stone-400 hover:text-rose-400"
           title="Reiniciar Run"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -88,4 +88,3 @@ export const Header: React.FC = () => {
     </header>
   );
 };
-

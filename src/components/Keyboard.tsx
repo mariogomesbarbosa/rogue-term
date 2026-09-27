@@ -95,74 +95,55 @@ export const Keyboard: React.FC = () => {
     const isSelectedInProbe = isProbeMode && selectedProbeLetters.includes(key);
 
     let base =
-      'relative h-10 sm:h-11 md:h-12 rounded-md font-mono font-black text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-all duration-100 active:translate-y-0.5 ';
+      'relative h-10 sm:h-11 md:h-12 rounded-md font-mono font-bold text-xs sm:text-sm flex items-center justify-center select-none cursor-pointer transition-all duration-150 active:translate-y-0.5 shadow-[0_2px_0_0_#1c1917] ';
 
     if (isSelectedInProbe) {
       return (
         base +
-        'w-8 sm:w-10 md:w-11 bg-cyan-950 border-2 border-cyan-400 text-cyan-200 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.6)]'
+        'w-8 sm:w-10 md:w-11 bg-cyan-950 border-2 border-cyan-400 text-cyan-200 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.5)]'
       );
     }
 
     if (isEnter) {
-      base += 'w-12 sm:w-[60px] md:w-[66px] text-[11px] sm:text-xs ';
+      base += 'w-12 sm:w-[60px] md:w-[66px] bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
     } else if (isBackspace) {
-      base += 'w-8 sm:w-10 md:w-11 text-[11px] sm:text-xs ';
+      base += 'w-8 sm:w-10 md:w-11 bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 text-[11px] sm:text-xs ';
     } else {
       base += 'w-8 sm:w-10 md:w-11 ';
     }
 
-    // Estilos de status com chanfro 2.5D (borda inferior escura para simular curso mecânico da tecla)
+    // Estilos de status
     switch (status) {
       case 'correct':
-        // Verde fósforo com chanfro mecânico
         return (
           base +
-          'bg-gradient-to-b from-emerald-600 to-emerald-800 border-t border-emerald-400 border-x border-emerald-600 border-b-3 border-emerald-950 text-emerald-100 shadow-[0_2px_4px_rgba(0,0,0,0.6),0_0_12px_rgba(16,185,129,0.35)] active:border-b active:translate-y-0.5'
+          'bg-emerald-600 border border-emerald-400 text-emerald-100 shadow-[0_3px_0_0_#065f46,0_0_12px_rgba(16,185,129,0.3)]'
         );
       case 'present':
-        // Âmbar fósforo com chanfro mecânico
         return (
           base +
-          'bg-gradient-to-b from-amber-600 to-amber-850 border-t border-amber-400 border-x border-amber-600 border-b-3 border-amber-950 text-amber-100 shadow-[0_2px_4px_rgba(0,0,0,0.6),0_0_12px_rgba(245,158,11,0.35)] active:border-b active:translate-y-0.5'
+          'bg-amber-600 border border-amber-400 text-amber-100 shadow-[0_3px_0_0_#92400e,0_0_12px_rgba(245,158,11,0.3)]'
         );
       case 'probed_hit':
-        // Acerto da Sonda: Ciano Radar com relevo brilhante
+        // Acerto da Sonda: Ciano Neon Elétrico Radar
         return (
           base +
-          'bg-gradient-to-b from-cyan-600 to-cyan-850 border-t border-cyan-300 border-x border-cyan-500 border-b-3 border-cyan-950 text-cyan-50 shadow-[0_2px_4px_rgba(0,0,0,0.6),0_0_16px_rgba(6,182,212,0.6)] animate-pulse'
+          'bg-cyan-600/90 border-2 border-cyan-300 text-cyan-50 shadow-[0_3px_0_0_#0e7490,0_0_16px_rgba(6,182,212,0.6)] animate-pulse'
         );
       case 'probed_miss':
         // Erro da Sonda: Descartada pelo radar
         return (
           base +
-          'bg-[#121216] border border-cyan-950/70 border-b-2 text-stone-600 opacity-40 shadow-none'
+          'bg-stone-900 border border-cyan-950/70 text-stone-600 opacity-40 shadow-none'
         );
       case 'absent':
-        // Tecla testada e ausente da palavra: tecla afundada/apagada
-        return (
-          base +
-          'bg-[#131317] border border-stone-850 border-b-2 text-stone-650 opacity-45 shadow-none'
-        );
+        return base + 'bg-stone-900 border border-stone-800 text-stone-600 opacity-60';
       default:
-        // Teclas neutras não testadas: Plástico texturizado industrial com chanfro mecânico
-        if (isEnter) {
-          return (
-            base +
-            'bg-gradient-to-b from-amber-500/90 to-amber-600 border-t border-amber-300 border-x border-amber-600 border-b-3 border-amber-900 text-stone-950 font-black shadow-[0_2px_4px_rgba(0,0,0,0.5)] hover:brightness-110 active:border-b active:translate-y-0.5'
-          );
-        }
-        if (isBackspace) {
-          return (
-            base +
-            'bg-gradient-to-b from-stone-700 to-stone-850 border-t border-stone-500 border-x border-stone-700 border-b-3 border-stone-950 text-stone-200 shadow-[0_2px_4px_rgba(0,0,0,0.5)] hover:bg-stone-700 active:border-b active:translate-y-0.5'
-          );
-        }
         return (
           base +
           (isProbeMode
-            ? 'bg-stone-850 border-2 border-dashed border-cyan-500/60 text-cyan-200 hover:border-cyan-400 hover:bg-cyan-950/40'
-            : 'bg-gradient-to-b from-[#2e2f38] via-[#24252d] to-[#1c1d24] border-t border-stone-500/70 border-x border-stone-700 border-b-3 border-stone-950 text-stone-200 hover:brightness-115 active:border-b active:translate-y-0.5 shadow-[0_2px_4px_rgba(0,0,0,0.5)]')
+            ? 'bg-stone-800 border-2 border-dashed border-cyan-500/50 text-cyan-200 hover:border-cyan-400 hover:bg-cyan-950/40'
+            : 'bg-gradient-to-b from-stone-700 via-stone-800 to-stone-900 border border-stone-600/60 text-stone-200 hover:border-stone-500')
         );
     }
   };

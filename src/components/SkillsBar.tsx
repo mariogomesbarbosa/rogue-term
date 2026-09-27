@@ -85,74 +85,49 @@ export const SkillsBar: React.FC = () => {
             return (
               <motion.div
                 key={skill.id}
-                whileHover={{ scale: 1.04, y: -2 }}
+                whileHover={{ scale: 1.04, y: -1 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => hasCharges && handleCardClick(skill)}
                 style={{
                   boxShadow: isSelected
-                    ? '0 0 16px rgba(245,158,11,0.6)'
-                    : `0 3px 10px ${style.glow}`
+                    ? '0 0 15px rgba(245,158,11,0.5)'
+                    : `0 2px 8px ${style.glow}`
                 }}
-                className={`relative cursor-pointer rounded-lg px-2 pt-1 pb-0.5 sm:px-2.5 sm:pt-1.5 border-2 flex flex-col justify-between transition-all shrink-0 min-w-[110px] sm:min-w-[135px] md:min-w-[145px] ${
+                className={`relative cursor-pointer rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5 border-2 flex flex-col justify-between transition-all shrink-0 min-w-[105px] sm:min-w-[130px] md:min-w-[140px] ${
                   style.border
                 } ${
                   isSelected
-                    ? 'bg-amber-950/95 ring-2 ring-amber-400'
+                    ? 'bg-amber-950/90 ring-2 ring-amber-400'
                     : hasCharges
-                    ? 'bg-gradient-to-b from-stone-900 to-stone-950 hover:from-stone-850 hover:to-stone-900'
-                    : 'bg-stone-950/60 opacity-40 grayscale cursor-not-allowed'
+                    ? 'bg-stone-900/95 hover:bg-stone-850'
+                    : 'bg-stone-950/60 opacity-50 grayscale cursor-not-allowed'
                 }`}
                 title={skill.description}
               >
-                {/* Cabeçalho do Cartucho: Serigrafia técnica + LED indicador */}
-                <div className="flex items-center justify-between text-[7px] text-stone-500 font-bold uppercase tracking-wider mb-0.5">
-                  <span className="flex items-center gap-1">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        hasCharges
-                          ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse'
-                          : 'bg-stone-700'
-                      }`}
-                    />
-                    <span>CART-ROM</span>
-                  </span>
-                  <span className="text-stone-400">REV-87</span>
-                </div>
-
-                {/* Topo do Card: Ícone e Nome */}
+                {/* Topo do Card */}
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1 text-stone-200 truncate">
                     {ICON_MAP[skill.iconName] || <Sparkles className="w-3 h-3" />}
-                    <span className="text-[11px] sm:text-xs font-black truncate text-stone-100">
+                    <span className="text-[11px] sm:text-xs font-black truncate">
                       {skill.name.split(' ')[0]}
                     </span>
                   </div>
 
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-stone-950 border border-stone-700 font-bold shrink-0">
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-stone-800 border border-stone-700 font-bold shrink-0">
                     {hasCharges ? (
                       <span className="text-amber-400">⚡{skill.chargesCurrent}</span>
                     ) : (
-                      <span className="text-stone-600">0</span>
+                      <span className="text-stone-500">0</span>
                     )}
                   </span>
                 </div>
 
                 {/* Rodapé do Card com Raridade e Power */}
-                <div className="flex items-center justify-between text-[8px] text-stone-400 mt-1">
-                  <span className={`uppercase font-extrabold px-1 rounded text-[7px] ${style.badge}`}>
+                <div className="flex items-center justify-between text-[8px] text-stone-400 mt-0.5">
+                  <span className={`uppercase font-extrabold px-1 rounded ${style.badge}`}>
                     {skill.rarity}
                   </span>
-                  <span className="text-[7.5px] text-stone-500 font-mono">PWR:{skill.powerScore}</span>
-                </div>
-
-                {/* Conector ISA / Trilha de Ouro da Placa */}
-                <div className="flex justify-center gap-0.5 pt-1 mt-1 border-t border-stone-800/90 overflow-hidden">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1 bg-amber-400/80 rounded-t-xs shadow-[0_0_3px_rgba(245,158,11,0.5)]"
-                    />
-                  ))}
+                  <span className="text-[7.5px] text-stone-500">P{skill.powerScore}</span>
                 </div>
               </motion.div>
             );
@@ -160,7 +135,7 @@ export const SkillsBar: React.FC = () => {
         </div>
       )}
 
-      {/* Linha 2: Habilidades Passivas (Estilo Chips DIP de Silício) */}
+      {/* Linha 2: Habilidades Passivas (abaixo das utilizáveis) */}
       {passives.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 justify-start sm:justify-center">
           {passives.map(passive => {
@@ -171,26 +146,17 @@ export const SkillsBar: React.FC = () => {
                 whileHover={{ scale: 1.05, y: -1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedPassive(passive)}
-                className={`rounded-md px-2 py-1 border flex items-center gap-1.5 bg-[#121214] shrink-0 cursor-pointer transition-all relative overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${style.border}`}
+                className={`rounded-lg px-2 py-0.5 sm:py-1 border flex items-center gap-1.5 bg-stone-950/80 shrink-0 cursor-pointer transition-all ${style.border}`}
                 title={passive.description}
                 type="button"
                 aria-label={`Ver detalhes da passiva ${passive.name}`}
               >
-                {/* Notch semicircular clássico de chip integrado */}
-                <div className="w-1 h-2 rounded-r-full bg-stone-950 border-r border-stone-700/80 -ml-2 shrink-0" />
-
-                <div className="text-cyan-400 shrink-0">
-                  {ICON_MAP[passive.iconName] || <Shield className="w-3 h-3" />}
-                </div>
-
+                <div className="text-stone-300">{ICON_MAP[passive.iconName] || <Shield className="w-3 h-3" />}</div>
                 <div className="flex flex-col text-left">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[7px] text-stone-500 font-bold uppercase tracking-tight">IC-DIP</span>
-                    <span className="text-[10px] font-black text-stone-200 truncate max-w-[80px] sm:max-w-[120px]">
-                      {passive.name.split(' ')[0]}
-                    </span>
-                  </div>
-                  <span className="text-[7px] text-cyan-400 uppercase font-semibold tracking-wider">PASSIVA</span>
+                  <span className="text-[10px] font-bold text-stone-200 truncate max-w-[80px] sm:max-w-[120px]">
+                    {passive.name.split(' ')[0]}
+                  </span>
+                  <span className="text-[7px] text-cyan-400 uppercase font-semibold">PASSIVA</span>
                 </div>
               </motion.button>
             );

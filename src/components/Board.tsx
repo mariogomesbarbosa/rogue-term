@@ -37,67 +37,54 @@ export const Board: React.FC = () => {
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
     const base =
-      'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 lg:w-14 lg:h-14 flex items-center justify-center font-mono font-black text-xl sm:text-2xl md:text-3xl rounded-md select-none uppercase transition-all duration-150 relative ';
+      'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 lg:w-14 lg:h-14 flex items-center justify-center font-mono font-black text-xl sm:text-2xl md:text-3xl rounded-lg select-none uppercase transition-all duration-200 relative ';
 
     if (isSelected) {
-      return (
-        base +
-        'bg-amber-950/70 border-2 border-amber-400 text-amber-300 ring-4 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.5)] scale-105 animate-pulse'
-      );
+      return base + 'bg-amber-500/25 border-2 border-amber-400 text-amber-300 ring-4 ring-amber-500/40 animate-pulse scale-105';
     }
 
     if (isSelectable) {
       return (
         base +
-        'cursor-pointer border-2 border-dashed border-amber-400/90 hover:scale-105 hover:border-amber-300 hover:bg-amber-400/20 shadow-[0_0_12px_rgba(245,158,11,0.35)] '
+        'cursor-pointer border-2 border-dashed border-amber-400/80 hover:scale-105 hover:border-amber-300 hover:bg-amber-400/15 shadow-[0_0_10px_rgba(245,158,11,0.25)] '
       );
     }
 
     if (isCurrentActive) {
       return (
         base +
-        'cursor-pointer bg-[#18181f] border-2 border-amber-400 text-amber-200 ring-2 ring-amber-400/50 shadow-[0_0_16px_rgba(245,158,11,0.45),inset_0_0_8px_rgba(245,158,11,0.2)] scale-105 z-10'
+        'cursor-pointer bg-stone-900 border-2 border-amber-400 text-amber-100 ring-2 ring-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.35)] scale-105 z-10'
       );
     }
 
     if (isCurrentRow) {
       return (
         base +
-        'cursor-pointer bg-[#13141a]/90 border-2 border-stone-700 text-amber-100 hover:border-amber-500/70 shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)]'
+        'cursor-pointer bg-stone-900/80 border-2 border-stone-600/80 text-stone-100 hover:border-amber-500/60'
       );
     }
 
     switch (status) {
       case 'correct':
-        // Verde fósforo terminal CRT (#00ff66) com glow fosforescente
         return (
           base +
-          'bg-gradient-to-b from-emerald-950/90 to-[#062015] border-2 border-emerald-400 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.45),inset_0_0_8px_rgba(16,185,129,0.2)]'
+          'bg-emerald-600/90 border-2 border-emerald-400 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
         );
       case 'present':
-        // Âmbar fósforo terminal CRT (#ffb000) com glow fosforescente
         return (
           base +
-          'bg-gradient-to-b from-amber-950/90 to-[#221204] border-2 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.4),inset_0_0_8px_rgba(245,158,11,0.2)]'
+          'bg-amber-600/90 border-2 border-amber-400 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
         );
       case 'absent':
-        // Fósforo apagado / célula escura
-        return (
-          base +
-          'bg-[#101014] border border-stone-800 text-stone-600 shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] opacity-70'
-        );
+        return base + 'bg-stone-800/80 border border-stone-700/80 text-stone-400';
       case 'tbd':
-        // Letra recém-digitada pronta para envio
         return (
           base +
-          'bg-[#191921] border-2 border-amber-500/80 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.25),inset_0_1px_2px_rgba(255,255,255,0.1)]'
+          'bg-stone-900/90 border-2 border-stone-500 text-stone-100 shadow-[0_0_10px_rgba(255,255,255,0.08)]'
         );
       case 'empty':
       default:
-        return (
-          base +
-          'bg-[#0b0c10]/80 border border-stone-850 text-transparent shadow-[inset_0_1px_4px_rgba(0,0,0,0.9)]'
-        );
+        return base + 'bg-stone-950/40 border border-stone-800/70 text-transparent';
     }
   };
 
@@ -164,75 +151,61 @@ export const Board: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Grid de Palavras - Chassi CRT com Bezel Metálico */}
+      {/* Grid de Palavras */}
       <motion.div
         animate={shakeBoard ? { x: [-10, 10, -6, 6, -3, 3, 0] } : {}}
         transition={{ duration: 0.35 }}
-        className="flex flex-col p-2.5 sm:p-3.5 rounded-xl bg-[#0e0f14] border-2 border-stone-800 shadow-[0_8px_30px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] relative max-h-[50dvh] sm:max-h-[55dvh] overflow-y-auto no-scrollbar"
+        className="flex flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl bg-stone-900/40 border border-stone-800/80 shadow-[0_6px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm max-h-[50dvh] sm:max-h-[55dvh] overflow-y-auto no-scrollbar"
       >
-        {/* Barra superior de status do buffer CRT */}
-        <div className="flex items-center justify-between text-[8px] text-stone-500 font-mono font-bold tracking-widest pb-1.5 mb-1.5 border-b border-stone-800/80">
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shadow-[0_0_4px_#10b981]" />
-            <span>BUFFER-CRT // 5×6 MATRIX</span>
-          </span>
-          <span className="text-amber-500/70">
-            {evaluations.length < 6 ? `LINHA ${evaluations.length + 1}/6` : 'BUFFER_CHEIO'}
-          </span>
-        </div>
+        {rows.map((_, rowIndex) => {
+          const isEvaluated = rowIndex < evaluations.length;
+          const isCurrent = rowIndex === evaluations.length;
 
-        {/* Linhas de Células */}
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          {rows.map((_, rowIndex) => {
-            const isEvaluated = rowIndex < evaluations.length;
-            const isCurrent = rowIndex === evaluations.length;
+          return (
+            <div key={rowIndex} className="grid grid-cols-5 gap-1.5 sm:gap-2">
+              {Array.from({ length: 5 }).map((_, colIndex) => {
+                let char = '';
+                let status: TileStatus = 'empty';
 
-            return (
-              <div key={rowIndex} className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                {Array.from({ length: 5 }).map((_, colIndex) => {
-                  let char = '';
-                  let status: TileStatus = 'empty';
+                if (isEvaluated) {
+                  const letterData = evaluations[rowIndex].letters[colIndex];
+                  char = letterData?.char || '';
+                  status = letterData?.status || 'empty';
+                } else if (isCurrent) {
+                  char = currentGuess[colIndex] || '';
+                  status = char ? 'tbd' : 'empty';
+                }
 
-                  if (isEvaluated) {
-                    const letterData = evaluations[rowIndex].letters[colIndex];
-                    char = letterData?.char || '';
-                    status = letterData?.status || 'empty';
-                  } else if (isCurrent) {
-                    char = currentGuess[colIndex] || '';
-                    status = char ? 'tbd' : 'empty';
-                  }
+                const isSelectable = !!targetingState && isEvaluated;
+                const isSelected =
+                  selectedLetterPos?.row === rowIndex && selectedLetterPos?.col === colIndex;
+                const isCurrentActive = isCurrent && activeTileCol === colIndex && !targetingState;
 
-                  const isSelectable = !!targetingState && isEvaluated;
-                  const isSelected =
-                    selectedLetterPos?.row === rowIndex && selectedLetterPos?.col === colIndex;
-                  const isCurrentActive = isCurrent && activeTileCol === colIndex && !targetingState;
-
-                  return (
-                    <motion.div
-                      key={colIndex}
-                      whileHover={isSelectable || isCurrent ? { scale: 1.05 } : {}}
-                      whileTap={isSelectable || isCurrent ? { scale: 0.95 } : {}}
-                      onClick={() => handleTileClick(rowIndex, colIndex, isCurrent)}
-                      className={getTileClasses(
-                        status,
-                        isSelectable,
-                        isSelected,
-                        isCurrentActive,
-                        isCurrent
-                      )}
-                    >
-                      {char}
-                      {/* Cursor piscante de terminal retrô na posição ativa de digitação */}
-                      {isCurrentActive && !char && (
-                        <span className="absolute bottom-1 w-3 sm:w-4 h-1 bg-amber-400 shadow-[0_0_6px_#f59e0b] rounded-xs animate-pulse" />
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+                return (
+                  <motion.div
+                    key={colIndex}
+                    whileHover={isSelectable || isCurrent ? { scale: 1.05 } : {}}
+                    whileTap={isSelectable || isCurrent ? { scale: 0.95 } : {}}
+                    onClick={() => handleTileClick(rowIndex, colIndex, isCurrent)}
+                    className={getTileClasses(
+                      status,
+                      isSelectable,
+                      isSelected,
+                      isCurrentActive,
+                      isCurrent
+                    )}
+                  >
+                    {char}
+                    {/* Cursor piscante na posição ativa da linha de digitação */}
+                    {isCurrentActive && !char && (
+                      <span className="absolute bottom-1 w-3 sm:w-4 h-0.5 bg-amber-400 rounded-full animate-pulse" />
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          );
+        })}
       </motion.div>
 
       {/* Popover / Seletor de Nova Letra (quando selecionado no Ctrl+Z) */}
