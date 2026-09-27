@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { SkillCard, Rarity } from '@/types/game';
+import { Rarity } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Zap, Shield, ChevronRight } from 'lucide-react';
 
@@ -40,19 +40,19 @@ export const DraftModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="w-full max-w-4xl bg-stone-950/95 border-2 border-amber-500/80 rounded-2xl p-5 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.25)] flex flex-col items-center gap-6 font-mono"
+          className="w-full max-w-4xl max-h-[92dvh] my-auto bg-stone-950/95 border-2 border-amber-500/80 rounded-2xl p-4 sm:p-6 shadow-[0_0_60px_rgba(245,158,11,0.25)] flex flex-col items-center gap-4 sm:gap-6 font-mono overflow-y-auto"
         >
           {/* Cabeçalho do Draft */}
-          <div className="text-center flex flex-col items-center gap-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/60 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+          <div className="text-center flex flex-col items-center gap-1 sm:gap-1.5 shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 sm:py-1 rounded-full bg-emerald-950/60 border border-emerald-500/60 text-emerald-400 text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" /> Palavra Decifrada!
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-cyan-300 tracking-wider">
+            <h2 className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-cyan-300 tracking-wider">
               DRAFT DO ESCRIBA
             </h2>
             <p className="text-xs sm:text-sm text-stone-400 max-w-md">
@@ -61,18 +61,18 @@ export const DraftModal: React.FC = () => {
           </div>
 
           {/* As 3 Cartas Sorteadas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            {draftChoices.map((card, idx) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 w-full">
+            {draftChoices.map(card => {
               const theme = RARITY_THEMES[card.rarity];
               const isActive = card.type === 'active';
 
               return (
                 <motion.div
                   key={card.id}
-                  whileHover={{ y: -8, scale: 1.03 }}
+                  whileHover={{ y: -6, scale: 1.02 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                   style={{ boxShadow: `0 8px 30px ${theme.glow}` }}
-                  className={`rounded-xl border-2 p-5 flex flex-col justify-between gap-4 bg-gradient-to-b ${theme.bg} ${theme.border} relative overflow-hidden group`}
+                  className={`rounded-xl border-2 p-4 sm:p-5 flex flex-col justify-between gap-3 sm:gap-4 bg-gradient-to-b ${theme.bg} ${theme.border} relative overflow-hidden group`}
                 >
                   {/* Efeito Foil Holográfico em cartas raras */}
                   {card.rarity === 'legendary' && (
@@ -80,7 +80,7 @@ export const DraftModal: React.FC = () => {
                   )}
 
                   {/* Topo da Carta */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5 sm:gap-2">
                     <div className="flex items-center justify-between">
                       <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${theme.badge}`}>
                         {card.rarity}
@@ -98,21 +98,23 @@ export const DraftModal: React.FC = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-black text-stone-100 tracking-wide mt-1">
+                    <h3 className="text-base sm:text-lg font-black text-stone-100 tracking-wide mt-1">
                       {card.name}
                     </h3>
-                    <span className="text-xs text-amber-400 font-semibold italic">
-                      "{card.tagline}"
-                    </span>
+                    {card.tagline && (
+                      <span className="text-xs text-amber-400 font-semibold italic">
+                        &ldquo;{card.tagline}&rdquo;
+                      </span>
+                    )}
                   </div>
 
                   {/* Descrição do Efeito */}
-                  <p className="text-xs text-stone-300 leading-relaxed bg-stone-900/60 p-3 rounded-lg border border-stone-800">
+                  <p className="text-xs text-stone-300 leading-relaxed bg-stone-900/60 p-2.5 sm:p-3 rounded-lg border border-stone-800">
                     {card.description}
                   </p>
 
                   {/* Rodapé da Carta: Power & Botão Escolher */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2.5 sm:gap-3">
                     <div className="flex items-center justify-between text-[11px] text-stone-400">
                       <span>Power Score:</span>
                       <span className="font-bold text-stone-200">{card.powerScore}</span>
@@ -120,7 +122,7 @@ export const DraftModal: React.FC = () => {
 
                     <button
                       onClick={() => chooseDraftCard(card)}
-                      className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md hover:shadow-lg transition-all"
+                      className="w-full py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md hover:shadow-lg transition-all active:scale-95"
                     >
                       <span>Equipar Carta</span>
                       <ChevronRight className="w-4 h-4" />
