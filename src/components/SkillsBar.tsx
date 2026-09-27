@@ -15,8 +15,7 @@ import {
   Coins,
   Zap,
   Activity,
-  Layers,
-  ZapOff
+  Layers
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {

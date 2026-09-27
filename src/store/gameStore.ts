@@ -53,6 +53,12 @@ interface GameState {
   setNotification: (msg: string | null) => void;
 }
 
+function consumeSkillCharge(activeSkills: SkillCard[], skillId: string): SkillCard[] {
+  return activeSkills
+    .map(s => (s.id === skillId ? { ...s, chargesCurrent: s.chargesCurrent - 1 } : s))
+    .filter(s => s.chargesCurrent > 0);
+}
+
 function updateKeyboardStatus(
   currentKeyboard: Record<string, TileStatus>,
   evaluatedRow: EvaluatedRow
@@ -446,9 +452,7 @@ export const useGameStore = create<GameState>()(
           const newGuesses = guesses.slice(0, -1);
           const refundedKeys = Math.min(maxKeys, keys + 1);
 
-          const updatedSkills = activeSkills.map(s =>
-            s.id === skillId ? { ...s, chargesCurrent: s.chargesCurrent - 1 } : s
-          );
+          const updatedSkills = consumeSkillCharge(activeSkills, skillId);
 
           set({
             evaluations: newEvals,
@@ -484,9 +488,7 @@ export const useGameStore = create<GameState>()(
           }
 
           const revealed = targetVowels[0];
-          const updatedSkills = activeSkills.map(s =>
-            s.id === skillId ? { ...s, chargesCurrent: s.chargesCurrent - 1 } : s
-          );
+          const updatedSkills = consumeSkillCharge(activeSkills, skillId);
 
           set({
             activeSkills: updatedSkills,
@@ -570,9 +572,7 @@ export const useGameStore = create<GameState>()(
           }
         });
 
-        const updatedSkills = activeSkills.map(s =>
-          s.id === 'sonda_circuito' ? { ...s, chargesCurrent: s.chargesCurrent - 1 } : s
-        );
+        const updatedSkills = consumeSkillCharge(activeSkills, 'sonda_circuito');
 
         let msg = '';
         if (hits.length > 0) {
@@ -616,9 +616,7 @@ export const useGameStore = create<GameState>()(
         const newEvaluations = [...evaluations];
         newEvaluations[rowIndex] = updatedRow;
 
-        const updatedSkills = activeSkills.map(s =>
-          s.id === 'ctrl_z' ? { ...s, chargesCurrent: Math.max(0, s.chargesCurrent - 1) } : s
-        );
+        const updatedSkills = consumeSkillCharge(activeSkills, 'ctrl_z');
 
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
@@ -672,9 +670,7 @@ export const useGameStore = create<GameState>()(
         const newEvaluations = [...evaluations];
         newEvaluations[rowIndex] = updatedRow;
 
-        const updatedSkills = activeSkills.map(s =>
-          s.id === 'anagramador' ? { ...s, chargesCurrent: Math.max(0, s.chargesCurrent - 1) } : s
-        );
+        const updatedSkills = consumeSkillCharge(activeSkills, 'anagramador');
 
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
