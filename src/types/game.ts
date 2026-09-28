@@ -28,7 +28,25 @@ export interface SkillCard {
   rechargeEveryRounds?: number;
 }
 
-export type GamePhase = 'playing' | 'round_won' | 'drafting' | 'game_over';
+export type GamePhase = 'playing' | 'round_won' | 'drafting' | 'game_over' | 'victory';
+
+export type BossAnomalyId = 'key_jam' | 'switch_ghosting' | 'glitched_crt' | 'power_surge';
+
+export interface BossAnomaly {
+  id: BossAnomalyId;
+  name: string;
+  tagline: string;
+  description: string;
+  iconName: string;
+}
+
+export interface Boss {
+  id: string;
+  name: string;
+  title: string;
+  anomaly: BossAnomaly;
+  disabledLetters?: string[];
+}
 
 export interface GameStats {
   wordsSolved: number;

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices } from '@/data/skills';
+import { generateBossForSector } from '@/data/bosses';
 import confetti from 'canvas-confetti';
 
 interface TargetingState {
@@ -18,6 +19,11 @@ interface GameState {
   maxKeys: number;
   score: number;
   round: number;
+  sector: number;
+  stage: number;
+  maxSectors: number;
+  currentBoss: Boss | null;
+  endlessMode: boolean;
   streak: number;
   targetWord: string;
   guesses: string[];
@@ -37,6 +43,7 @@ interface GameState {
   // Ações
   startNewRun: () => void;
   startNextRound: () => void;
+  continueEndless: () => void;
   setActiveTileCol: (col: number) => void;
   moveCursor: (direction: 'left' | 'right') => void;
   addLetter: (char: string) => void;
@@ -106,7 +113,9 @@ function calculateRoundWinState({
     // No-op if confetti fails
   }
 
-  const { targetWord, passives, maxKeys, round, streak, score, activeSkills } = state;
+  const { targetWord, passives, maxKeys, round, streak, score, activeSkills, sector, stage, maxSectors, endlessMode, currentBoss } = state;
+
+  const isBossFight = stage === 3 && !!currentBoss;
 
   // Cálculo de Teclas restauradas
   let keysRestored = 2;
@@ -114,6 +123,11 @@ function calculateRoundWinState({
   else if (guessIndex === 2) keysRestored = 5;
   else if (guessIndex === 3) keysRestored = 4;
   else if (guessIndex === 4) keysRestored = 3;
+
+  // Bônus épico de Teclas ao derrotar o Chefe!
+  if (isBossFight) {
+    keysRestored += 3;
+  }
 
   // Passiva: Switch Dourado (Letras raras dão +2 teclas extras)
   const hasGoldSwitch = passives.some(p => p.id === 'switch_dourado');
@@ -124,8 +138,8 @@ function calculateRoundWinState({
 
   const newKeys = Math.min(maxKeys, remainingKeys + keysRestored);
 
-  // Cálculo de Pontuação
-  const basePoints = round * 1000 + (6 - Math.min(6, guessIndex)) * 250;
+  // Cálculo de Pontuação (Chefes concedem bônus robusto)
+  const basePoints = round * 1000 + (6 - Math.min(6, guessIndex)) * 250 + (isBossFight ? 2500 : 0);
   let multiplier = 1.0;
   if (guessIndex === 1) multiplier = 4.0;
   else if (guessIndex === 2) multiplier = 2.5;
@@ -147,6 +161,21 @@ function calculateRoundWinState({
     ...passives.map(s => s.id)
   ]);
 
+  // Se venceu o Chefe do Setor 8 e não está no modo infinito -> Vitória da Run!
+  const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
+  const nextGamePhase: GamePhase = isFinalVictory ? 'victory' : 'drafting';
+
+  let winMessage = customWinMessage;
+  if (!winMessage) {
+    if (isFinalVictory) {
+      winMessage = `🏆 VITÓRIA DO SISTEMA! O Mainframe Central foi derrotado no Setor ${sector}!`;
+    } else if (isBossFight) {
+      winMessage = `💥 CHEFE DERROTADO! Setor ${sector} descriptografado! +${keysRestored} Teclas e +${roundPoints} Pontos!`;
+    } else {
+      winMessage = `Excelente! +${keysRestored} Teclas [T] recuperadas! +${roundPoints} Pontos.`;
+    }
+  }
+
   return {
     guesses: newGuesses,
     evaluations: newEvaluations,
@@ -157,10 +186,10 @@ function calculateRoundWinState({
     streak: newStreak,
     keyboardStatus: updatedKeyboard,
     draftChoices,
-    gamePhase: 'drafting',
+    gamePhase: nextGamePhase,
     targetingState: null,
     ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
-    notification: customWinMessage || `Excelente! +${keysRestored} Teclas [T] recuperadas! +${roundPoints} Pontos.`
+    notification: winMessage
   };
 }
 
@@ -171,6 +200,11 @@ export const useGameStore = create<GameState>()(
       maxKeys: 20,
       score: 0,
       round: 1,
+      sector: 1,
+      stage: 1,
+      maxSectors: 8,
+      currentBoss: null,
+      endlessMode: false,
       streak: 0,
       targetWord: getRandomTargetWord(),
       guesses: [],
@@ -198,6 +232,11 @@ export const useGameStore = create<GameState>()(
           maxKeys: 20,
           score: 0,
           round: 1,
+          sector: 1,
+          stage: 1,
+          maxSectors: 8,
+          currentBoss: null,
+          endlessMode: false,
           streak: 0,
           targetWord: firstWord,
           guesses: [],
@@ -211,17 +250,51 @@ export const useGameStore = create<GameState>()(
           ],
           passives: [],
           draftChoices: [],
-          notification: 'Nova Run iniciada! Suas Teclas [T] são o seu fôlego.',
+          notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
           shakeBoard: false,
           keyboardStatus: {},
           targetingState: null
         });
       },
 
+      continueEndless: () => {
+        const { sector, round } = get();
+        const nextSector = sector + 1;
+        const nextWord = getRandomTargetWord();
+        set({
+          endlessMode: true,
+          sector: nextSector,
+          stage: 1,
+          round: round + 1,
+          currentBoss: null,
+          targetWord: nextWord,
+          guesses: [],
+          evaluations: [],
+          currentGuess: ['', '', '', '', ''],
+          activeTileCol: 0,
+          gamePhase: 'playing',
+          draftChoices: [],
+          keyboardStatus: {},
+          targetingState: null,
+          notification: `MODO INFINITO! Bem-vindo ao Setor ${nextSector}!`
+        });
+      },
+
       startNextRound: () => {
-        const { evaluations, passives, round } = get();
+        const { evaluations, passives, round, sector, stage } = get();
         const nextWord = getRandomTargetWord();
         const nextRound = round + 1;
+
+        let nextSector = sector;
+        let nextStage = stage + 1;
+        let nextBoss: Boss | null = null;
+
+        if (stage === 3) {
+          nextSector = sector + 1;
+          nextStage = 1;
+        } else if (nextStage === 3) {
+          nextBoss = generateBossForSector(nextSector, nextWord);
+        }
 
         const newKeyboardStatus: Record<string, TileStatus> = {};
 
@@ -236,8 +309,15 @@ export const useGameStore = create<GameState>()(
           });
         }
 
+        const notificationMsg = nextBoss
+          ? `⚠️ ALERTA DE CHEFE: ${nextBoss.name} detectado! ${nextBoss.anomaly.tagline}`
+          : `Setor ${nextSector} - Fase ${nextStage}/3 iniciada!`;
+
         set({
           round: nextRound,
+          sector: nextSector,
+          stage: nextStage,
+          currentBoss: nextBoss,
           targetWord: nextWord,
           guesses: [],
           evaluations: [],
@@ -247,7 +327,7 @@ export const useGameStore = create<GameState>()(
           draftChoices: [],
           keyboardStatus: newKeyboardStatus,
           targetingState: null,
-          notification: `Rodada ${nextRound} iniciada!`
+          notification: notificationMsg
         });
       },
 
@@ -267,11 +347,21 @@ export const useGameStore = create<GameState>()(
       },
 
       addLetter: (char: string) => {
-        const { currentGuess, activeTileCol, gamePhase, targetingState } = get();
+        const { currentGuess, activeTileCol, gamePhase, targetingState, currentBoss } = get();
         if (gamePhase !== 'playing' || targetingState) return;
 
         const clean = normalizeWord(char);
         if (/^[A-Z]$/.test(clean)) {
+          // Checar anomalia de Chefe: Bug do Teclado (Key Jam)
+          if (currentBoss?.disabledLetters?.includes(clean)) {
+            set({
+              notification: `⚠️ Tecla [${clean}] emperrada pelo Bug do Teclado (${currentBoss.name})!`,
+              shakeBoard: true
+            });
+            setTimeout(() => set({ shakeBoard: false }), 450);
+            return;
+          }
+
           const updatedGuess = [...currentGuess];
           updatedGuess[activeTileCol] = clean;
 
@@ -321,7 +411,8 @@ export const useGameStore = create<GameState>()(
           keys,
           gamePhase,
           keyboardStatus,
-          passives
+          passives,
+          currentBoss
         } = get();
 
         if (gamePhase !== 'playing') return;
@@ -343,11 +434,20 @@ export const useGameStore = create<GameState>()(
 
         // Checar passiva: Buffer de Teclado (Primeiro palpite grátis se acertar 2+ letras)
         const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
-        const evalStatuses = evaluateGuess(guessWord, targetWord);
+        let evalStatuses = evaluateGuess(guessWord, targetWord);
+
+        // Checar anomalia de Chefe: Ghosting de Switch (letras amarelas viram ausentes)
+        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+          evalStatuses = evalStatuses.map(s => (s === 'present' ? 'absent' : s));
+        }
+
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;
         const isFreeGuess = hasBuffer && guesses.length === 0 && correctOrPresentCount >= 2;
 
-        const keysCost = isFreeGuess ? 0 : 1;
+        // Checar anomalia de Chefe: Sobrecarga de Circuito (Power Surge - consome 2 teclas por palpite incorreto)
+        const isPowerSurge = currentBoss?.anomaly.id === 'power_surge';
+        const baseCost = isPowerSurge ? 2 : 1;
+        const keysCost = isFreeGuess ? 0 : baseCost;
         const remainingKeys = keys - keysCost;
 
         // Construir linha avaliada
@@ -605,7 +705,7 @@ export const useGameStore = create<GameState>()(
       },
 
       applyRetroEdit: (rowIndex: number, colIndex: number, newChar: string) => {
-        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys } = get();
+        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys, currentBoss } = get();
         const cleanChar = normalizeWord(newChar);
 
         if (!/^[A-Z]$/.test(cleanChar)) return;
@@ -616,7 +716,10 @@ export const useGameStore = create<GameState>()(
         const updatedGuess = newChars.join('');
 
         // Recalcula cores para aquela linha inteira
-        const updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        let updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+          updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
+        }
         const updatedRow: EvaluatedRow = {
           letters: updatedGuess.split('').map((c, i) => ({
             char: c,
@@ -662,7 +765,7 @@ export const useGameStore = create<GameState>()(
       },
 
       applySwapLetters: (rowIndex: number, col1: number, col2: number) => {
-        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys } = get();
+        const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys, currentBoss } = get();
         const targetGuess = guesses[rowIndex];
         const chars = targetGuess.split('');
         const temp = chars[col1];
@@ -670,7 +773,11 @@ export const useGameStore = create<GameState>()(
         chars[col2] = temp;
         const updatedGuess = chars.join('');
 
-        const updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        let updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+          updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
+        }
+
         const updatedRow: EvaluatedRow = {
           letters: updatedGuess.split('').map((c, i) => ({
             char: c,
@@ -756,6 +863,11 @@ export const useGameStore = create<GameState>()(
         maxKeys: state.maxKeys,
         score: state.score,
         round: state.round,
+        sector: state.sector ?? 1,
+        stage: state.stage ?? 1,
+        maxSectors: state.maxSectors ?? 8,
+        currentBoss: state.currentBoss ?? null,
+        endlessMode: state.endlessMode ?? false,
         streak: state.streak,
         targetWord: state.targetWord,
         guesses: state.guesses,
