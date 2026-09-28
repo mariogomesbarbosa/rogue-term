@@ -3,13 +3,14 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
-import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
     keys,
     maxKeys,
     score,
+    coins,
     round,
     sector,
     stage,
@@ -109,34 +110,39 @@ export const BalatroSidebar: React.FC = () => {
           )}
         </div>
 
-        {/* Painel de Teclas [T] (Recurso Vital) */}
-        <div
-          className={`rounded-xl border p-3 flex flex-col gap-1 transition-all ${
-            isLowKeys
-              ? 'bg-rose-950/70 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)] animate-pulse'
-              : 'bg-stone-900/90 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">
-              Fôlego / Teclas
-            </span>
-            {isLowKeys && <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />}
-          </div>
-
-          <div className="flex items-center justify-between mt-0.5">
-            <div className="flex items-baseline gap-1">
-              <span className={`text-2xl lg:text-3xl font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
+        {/* Painel Duplo: Teclas [T] & Créditos ($) */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Painel de Teclas [T] */}
+          <div
+            className={`rounded-xl border p-2.5 flex flex-col justify-between transition-all ${
+              isLowKeys
+                ? 'bg-rose-950/70 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)] animate-pulse'
+                : 'bg-stone-900/90 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] uppercase font-bold text-stone-400">Teclas [T]</span>
+              {isLowKeys && <ShieldAlert className="w-3 h-3 text-rose-400" />}
+            </div>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className={`text-2xl font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
                 {keys}
               </span>
-              <span className="text-xs text-stone-500 font-bold">/{maxKeys}</span>
+              <span className="text-[10px] text-stone-500 font-bold">/{maxKeys}</span>
             </div>
-            <KeycapIcon size="sm" label="T" glow={isLowKeys} />
           </div>
 
-          <span className="text-[9px] text-stone-500 leading-tight">
-            Cada palpite custa 1 Tecla [T]. Acertos recarregam.
-          </span>
+          {/* Painel de Créditos ($) */}
+          <div className="rounded-xl border border-stone-800 bg-stone-900/90 p-2.5 flex flex-col justify-between shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <span className="text-[9px] uppercase font-bold text-stone-400 flex items-center gap-1">
+              <Coins className="w-3 h-3 text-amber-400" />
+              Créditos
+            </span>
+            <div className="flex items-baseline gap-0.5 mt-1 text-amber-400 font-black">
+              <span className="text-sm font-bold text-amber-500/70">$</span>
+              <span className="text-2xl font-black tracking-wide">{coins ?? 0}</span>
+            </div>
+          </div>
         </div>
 
         {/* Painel de Pontuação */}

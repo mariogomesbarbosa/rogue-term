@@ -173,3 +173,65 @@ export function getRandomDraftChoices(count: number = 3, existingSkillIds: strin
 
   return choices;
 }
+
+export function getCardPrice(rarity: Rarity): number {
+  switch (rarity) {
+    case 'common':
+      return 4;
+    case 'uncommon':
+      return 6;
+    case 'rare':
+      return 8;
+    case 'legendary':
+      return 10;
+    default:
+      return 5;
+  }
+}
+
+export function getCardSellValue(rarity: Rarity): number {
+  return Math.max(1, Math.floor(getCardPrice(rarity) / 2));
+}
+
+export function generateShopItems(existingSkillIds: string[], sector: number): import('@/types/game').ShopItem[] {
+  const cardChoices = getRandomDraftChoices(2, existingSkillIds);
+  const items: import('@/types/game').ShopItem[] = [];
+
+  // 1. Cartas de Habilidade
+  cardChoices.forEach((card, index) => {
+    items.push({
+      id: `shop_card_${card.id}_${Date.now()}_${index}`,
+      type: 'card',
+      price: getCardPrice(card.rarity),
+      card,
+      title: card.name,
+      description: card.description,
+      iconName: card.iconName,
+      bought: false
+    });
+  });
+
+  // 2. Serviço de Teclas: Kit de Recarga Rápida (+3 Teclas [T])
+  items.push({
+    id: `shop_key_refill_${Date.now()}`,
+    type: 'key_refill',
+    price: 3,
+    title: 'Kit de Lubrificante / Recarga',
+    description: 'Restaura imediatamente +3 Teclas [T] para o seu fôlego.',
+    iconName: 'Zap',
+    bought: false
+  });
+
+  // 3. Upgrade de Hardware: Expansão de Chassi (+5 Teclas Max & +5 Teclas)
+  items.push({
+    id: `shop_max_keys_${Date.now()}`,
+    type: 'max_keys_upgrade',
+    price: 7,
+    title: 'Chassi Mecânico Reforçado',
+    description: 'Aumenta permanentemente o limite máximo em +5 Teclas [T] e restaura +5 Teclas.',
+    iconName: 'Shield',
+    bought: false
+  });
+
+  return items;
+}

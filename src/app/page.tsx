@@ -8,6 +8,7 @@ import { Keyboard } from '@/components/Keyboard';
 import { SkillsBar } from '@/components/SkillsBar';
 import { CrtOverlay } from '@/components/CrtOverlay';
 import { DraftModal } from '@/components/DraftModal';
+import { ShopModal } from '@/components/ShopModal';
 import { GameOverModal } from '@/components/GameOverModal';
 import { VictoryModal } from '@/components/VictoryModal';
 import { BossAlertBanner } from '@/components/BossAlertBanner';
@@ -66,6 +67,7 @@ export default function GamePage() {
 
       {/* Modais de Fluxo de Jogo */}
       <DraftModal />
+      <ShopModal />
       <GameOverModal />
       <VictoryModal />
     </div>
