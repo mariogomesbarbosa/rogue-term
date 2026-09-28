@@ -17,7 +17,8 @@ export const Board: React.FC = () => {
     targetingState,
     cancelTargeting,
     applyRetroEdit,
-    applySwapLetters
+    applySwapLetters,
+    currentBoss
   } = useGameStore();
 
   // Estado local para seleção do Ctrl+Z e Anagramador
@@ -33,11 +34,16 @@ export const Board: React.FC = () => {
     isSelectable: boolean,
     isSelected: boolean,
     isCurrentActive: boolean,
-    isCurrentRow: boolean
+    isCurrentRow: boolean,
+    isGlitched: boolean = false
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
     const base =
       'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 lg:w-14 lg:h-14 flex items-center justify-center font-mono font-black text-xl sm:text-2xl md:text-3xl rounded-lg select-none uppercase transition-all duration-200 relative ';
+
+    if (isGlitched) {
+      return base + 'bg-fuchsia-950/80 border-2 border-dashed border-fuchsia-500 text-fuchsia-300 shadow-[0_0_15px_rgba(217,70,239,0.35)] animate-pulse';
+    }
 
     if (isSelected) {
       return base + 'bg-amber-500/25 border-2 border-amber-400 text-amber-300 ring-4 ring-amber-500/40 animate-pulse scale-105';
@@ -167,16 +173,22 @@ export const Board: React.FC = () => {
                 let char = '';
                 let status: TileStatus = 'empty';
 
+                const isGlitched =
+                  currentBoss?.anomaly.id === 'glitched_crt' &&
+                  colIndex === 2 &&
+                  evaluations.length < 3 &&
+                  isEvaluated;
+
                 if (isEvaluated) {
                   const letterData = evaluations[rowIndex].letters[colIndex];
-                  char = letterData?.char || '';
-                  status = letterData?.status || 'empty';
+                  char = isGlitched ? '?' : letterData?.char || '';
+                  status = isGlitched ? 'absent' : letterData?.status || 'empty';
                 } else if (isCurrent) {
                   char = currentGuess[colIndex] || '';
                   status = char ? 'tbd' : 'empty';
                 }
 
-                const isSelectable = !!targetingState && isEvaluated;
+                const isSelectable = !!targetingState && isEvaluated && !isGlitched;
                 const isSelected =
                   selectedLetterPos?.row === rowIndex && selectedLetterPos?.col === colIndex;
                 const isCurrentActive = isCurrent && activeTileCol === colIndex && !targetingState;
@@ -192,7 +204,8 @@ export const Board: React.FC = () => {
                       isSelectable,
                       isSelected,
                       isCurrentActive,
-                      isCurrent
+                      isCurrent,
+                      isGlitched
                     )}
                   >
                     {char}

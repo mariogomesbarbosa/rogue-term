@@ -3,7 +3,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { TileStatus } from '@/types/game';
-import { Delete, CornerDownLeft, Radio, X } from 'lucide-react';
+import { Delete, CornerDownLeft, Radio, X, Lock } from 'lucide-react';
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -22,7 +22,8 @@ export const Keyboard: React.FC = () => {
     cancelTargeting,
     toggleProbeLetter,
     executeProbe,
-    moveCursor
+    moveCursor,
+    currentBoss
   } = useGameStore();
 
   const isProbeMode = targetingState?.skillId === 'sonda_circuito';
@@ -101,6 +102,15 @@ export const Keyboard: React.FC = () => {
       return (
         base +
         'w-8 sm:w-10 md:w-11 bg-cyan-950 border-2 border-cyan-400 text-cyan-200 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+      );
+    }
+
+    const isLocked = currentBoss?.disabledLetters?.includes(key);
+
+    if (isLocked) {
+      return (
+        base +
+        'w-8 sm:w-10 md:w-11 bg-rose-950/80 border-2 border-rose-600/80 text-rose-400 opacity-60 cursor-not-allowed shadow-none'
       );
     }
 
@@ -237,6 +247,11 @@ export const Keyboard: React.FC = () => {
                   <span className="absolute top-0.5 right-1 text-[8px] text-cyan-800/80 font-mono">
                     ✕
                   </span>
+                )}
+
+                {/* Badge visual de Tecla Bloqueada pelo Chefe */}
+                {currentBoss?.disabledLetters?.includes(key) && (
+                  <Lock className="w-2.5 h-2.5 text-rose-400 absolute top-1 right-1" />
                 )}
 
                 {isEnter ? (

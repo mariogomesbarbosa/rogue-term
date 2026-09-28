@@ -9,6 +9,8 @@ import { SkillsBar } from '@/components/SkillsBar';
 import { CrtOverlay } from '@/components/CrtOverlay';
 import { DraftModal } from '@/components/DraftModal';
 import { GameOverModal } from '@/components/GameOverModal';
+import { VictoryModal } from '@/components/VictoryModal';
+import { BossAlertBanner } from '@/components/BossAlertBanner';
 import { NotificationToast } from '@/components/NotificationToast';
 
 const subscribe = () => () => {};
@@ -52,6 +54,9 @@ export default function GamePage() {
         {/* Topo da mesa: Cartas e Atalhos */}
         <SkillsBar />
 
+        {/* Alerta de Chefe (visível quando stage === 3) */}
+        <BossAlertBanner />
+
         {/* Centro da mesa: Tabuleiro de Palavras */}
         <Board />
 
@@ -62,6 +67,7 @@ export default function GamePage() {
       {/* Modais de Fluxo de Jogo */}
       <DraftModal />
       <GameOverModal />
+      <VictoryModal />
     </div>
   );
 }

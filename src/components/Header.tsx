@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
-import { Tv, RotateCcw, Flame } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -11,6 +11,9 @@ export const Header: React.FC = () => {
     maxKeys,
     score,
     round,
+    sector,
+    stage,
+    currentBoss,
     streak,
     crtEnabled,
     toggleCrt,
@@ -22,12 +25,30 @@ export const Header: React.FC = () => {
   return (
     // Visível apenas no Mobile / Telas pequenas. No Desktop, o BalatroSidebar assume essa função.
     <header className="md:hidden w-full px-2 py-1 flex items-center justify-between gap-1.5 border-b border-stone-800/80 bg-stone-950/90 backdrop-blur-md z-20 font-mono text-xs select-none shrink-0">
-      {/* Título & Rodada */}
+      {/* Título & Setor/Fase */}
       <div className="flex items-center gap-1.5">
-        <KeycapIcon size="sm" label="T" glow />
+        <KeycapIcon size="sm" label="T" glow={stage === 3} />
         <div className="flex flex-col leading-tight">
-          <span className="font-black text-amber-400 text-xs">ROGUE</span>
-          <span className="text-[9px] text-stone-400">R#{round}</span>
+          <div className="flex items-center gap-1">
+            <span className="font-black text-amber-400 text-xs">S{sector}</span>
+            <span
+              className={`text-[9px] font-bold px-1 rounded flex items-center gap-0.5 ${
+                stage === 3
+                  ? 'bg-rose-950 border border-rose-600 text-rose-300 animate-pulse'
+                  : 'bg-stone-900 border border-stone-800 text-stone-400'
+              }`}
+            >
+              {stage === 3 ? (
+                <>
+                  <Skull className="w-2.5 h-2.5 text-rose-400" />
+                  <span>CHEFE</span>
+                </>
+              ) : (
+                `${stage}/3`
+              )}
+            </span>
+          </div>
+          <span className="text-[8px] text-stone-500 font-bold">Palavra #{round}</span>
         </div>
       </div>
 

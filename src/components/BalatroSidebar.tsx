@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
-import { Tv, RotateCcw, Flame, ShieldAlert } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
@@ -11,6 +11,11 @@ export const BalatroSidebar: React.FC = () => {
     maxKeys,
     score,
     round,
+    sector,
+    stage,
+    maxSectors,
+    currentBoss,
+    endlessMode,
     streak,
     crtEnabled,
     toggleCrt,
@@ -40,6 +45,70 @@ export const BalatroSidebar: React.FC = () => {
 
       {/* Painel Central: Status da Run Estilo Console Balatro */}
       <div className="flex flex-col gap-3 my-auto">
+        {/* Painel de Setor & Estágio estilo Ante do Balatro */}
+        <div className="rounded-xl border border-stone-800 bg-stone-900/80 p-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-[10px] uppercase font-bold tracking-wider text-stone-300">
+                Setor
+              </span>
+            </div>
+            <span className="text-xs font-black text-cyan-400">
+              {sector}/{endlessMode ? '∞' : maxSectors}
+            </span>
+          </div>
+
+          {/* Trilha de 3 Fases do Setor */}
+          <div className="grid grid-cols-3 gap-1">
+            <div
+              className={`py-1 px-1 rounded text-center text-[10px] font-bold border transition-all ${
+                stage === 1
+                  ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                  : stage > 1
+                  ? 'bg-stone-900/40 border-stone-700/50 text-stone-500'
+                  : 'bg-stone-950/40 border-stone-800 text-stone-600'
+              }`}
+            >
+              1. Base
+            </div>
+            <div
+              className={`py-1 px-1 rounded text-center text-[10px] font-bold border transition-all ${
+                stage === 2
+                  ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                  : stage > 2
+                  ? 'bg-stone-900/40 border-stone-700/50 text-stone-500'
+                  : 'bg-stone-950/40 border-stone-800 text-stone-600'
+              }`}
+            >
+              2. Avanço
+            </div>
+            <div
+              className={`py-1 px-1 rounded text-center text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${
+                stage === 3
+                  ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  : 'bg-stone-950/40 border-stone-800 text-stone-600'
+              }`}
+            >
+              <Skull className="w-2.5 h-2.5" />
+              <span>3. Chefe</span>
+            </div>
+          </div>
+
+          {/* Alerta de Anomalia do Chefe se estiver na fase 3 */}
+          {currentBoss && stage === 3 && (
+            <div className="mt-1 p-2 rounded-lg bg-rose-950/60 border border-rose-600/80 flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5 text-rose-400 font-bold text-[10px]">
+                <Skull className="w-3 h-3 animate-pulse" />
+                <span>{currentBoss.name}</span>
+              </div>
+              <span className="text-[9px] text-rose-200 leading-tight">
+                {currentBoss.anomaly.description}
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Painel de Teclas [T] (Recurso Vital) */}
         <div
           className={`rounded-xl border p-3 flex flex-col gap-1 transition-all ${
@@ -84,7 +153,7 @@ export const BalatroSidebar: React.FC = () => {
         {/* Painel de Rodada e Combos */}
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-stone-800 bg-stone-900/70 p-2.5 flex flex-col">
-            <span className="text-[9px] uppercase font-bold text-stone-400">Rodada</span>
+            <span className="text-[9px] uppercase font-bold text-stone-400">Total Palavras</span>
             <span className="text-lg font-black text-stone-100">#{round}</span>
           </div>
 
