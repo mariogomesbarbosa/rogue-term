@@ -225,12 +225,12 @@ export const useGameStore = create<GameState>()(
 
         const newKeyboardStatus: Record<string, TileStatus> = {};
 
-        // Passiva: Circuito Duplo (Eco) - Letras verdes da palavra anterior começam reveladas
+        // Passiva: Circuito Duplo (Eco) - Letras verdes da palavra anterior que existam na nova palavra começam reveladas
         const hasEco = passives.some(p => p.id === 'eco_grafema');
         if (hasEco && evaluations.length > 0) {
           const lastEval = evaluations[evaluations.length - 1];
           lastEval.letters.forEach(l => {
-            if (l.status === 'correct') {
+            if (l.status === 'correct' && nextWord.includes(l.char)) {
               newKeyboardStatus[l.char] = 'correct';
             }
           });

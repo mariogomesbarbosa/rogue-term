@@ -131,7 +131,7 @@ export const ALL_SKILLS: SkillCard[] = [
     rarity: 'legendary',
     powerScore: 90,
     tagline: 'Memória persistente',
-    description: 'Letras verdes acertadas na palavra anterior já começam visíveis como reveladas na próxima palavra.',
+    description: 'Letras verdes acertadas na palavra anterior que existam na próxima palavra já começam reveladas no teclado.',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Layers'
