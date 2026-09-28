@@ -19,11 +19,11 @@ export const CrtOverlay: React.FC = () => {
         }}
       />
 
-      {/* Vinheta escura nas bordas do tubo CRT */}
+      {/* Vinheta escura suave nas bordas do tubo CRT */}
       <div 
-        className="pointer-events-none absolute inset-0 opacity-80"
+        className="pointer-events-none absolute inset-0 opacity-35"
         style={{
-          background: 'radial-gradient(circle at center, transparent 65%, rgba(4, 7, 13, 0.95) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 75%, rgba(4, 7, 13, 0.6) 100%)',
         }}
       />
 
