@@ -22,11 +22,14 @@ export const Keyboard: React.FC = () => {
     cancelTargeting,
     toggleProbeLetter,
     executeProbe,
+    applyThermalLensByKey,
+    lensHint,
     moveCursor,
     currentBoss
   } = useGameStore();
 
   const isProbeMode = targetingState?.skillId === 'sonda_circuito';
+  const isLensMode = targetingState?.skillId === 'lente_termica';
   const selectedProbeLetters = targetingState?.selectedLetters || [];
 
   const handleKeyPress = useCallback(
@@ -37,6 +40,14 @@ export const Keyboard: React.FC = () => {
       if (isProbeMode) {
         if (/^[A-Z]$/.test(key)) {
           toggleProbeLetter(key);
+        }
+        return;
+      }
+
+      // Se estiver no modo Lente Térmica, clicar em uma letra amarela aciona a análise
+      if (isLensMode) {
+        if (/^[A-Z]$/.test(key)) {
+          applyThermalLensByKey(key);
         }
         return;
       }
@@ -52,7 +63,7 @@ export const Keyboard: React.FC = () => {
         addLetter(key);
       }
     },
-    [addLetter, removeLetter, submitGuess, gamePhase, targetingState, isProbeMode, toggleProbeLetter]
+    [addLetter, removeLetter, submitGuess, gamePhase, targetingState, isProbeMode, isLensMode, toggleProbeLetter, applyThermalLensByKey]
   );
 
   // Escuta teclado físico do computador
@@ -102,6 +113,13 @@ export const Keyboard: React.FC = () => {
       return (
         base +
         'w-8 sm:w-10 md:w-11 bg-cyan-950 border-2 border-cyan-400 text-cyan-200 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+      );
+    }
+
+    if (isLensMode && status === 'present') {
+      return (
+        base +
+        'w-8 sm:w-10 md:w-11 bg-amber-600 border-2 border-dashed border-cyan-300 text-amber-100 ring-4 ring-cyan-500/40 scale-105 shadow-[0_0_15px_rgba(6,182,212,0.6)] animate-pulse'
       );
     }
 
@@ -252,6 +270,16 @@ export const Keyboard: React.FC = () => {
                 {/* Badge visual de Tecla Bloqueada pelo Chefe */}
                 {currentBoss?.disabledLetters?.includes(key) && (
                   <Lock className="w-2.5 h-2.5 text-rose-400 absolute top-1 right-1" />
+                )}
+
+                {/* Badge visual de Lente Térmica no teclado */}
+                {lensHint && lensHint.char === key && (
+                  <span
+                    className="absolute -top-1.5 -right-1 px-1 py-0.5 rounded bg-cyan-400 text-stone-950 text-[9px] font-black shadow border border-cyan-200 animate-bounce leading-none z-10 pointer-events-none"
+                    title={`Lente Térmica: ${lensHint.direction}`}
+                  >
+                    {lensHint.direction === 'left' ? '⬅️' : lensHint.direction === 'right' ? '➡️' : '↔️'}
+                  </span>
                 )}
 
                 {isEnter ? (

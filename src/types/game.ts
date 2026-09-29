@@ -50,6 +50,14 @@ export interface RoundEarnings {
   total: number;
 }
 
+export interface LensHint {
+  char: string;
+  rowIndex: number;
+  colIndex: number;
+  direction: 'left' | 'right' | 'both';
+  targetColumns: number[];
+}
+
 export type BossAnomalyId = 'key_jam' | 'switch_ghosting' | 'glitched_crt' | 'power_surge';
 
 export interface BossAnomaly {
