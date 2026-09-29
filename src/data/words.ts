@@ -46,10 +46,10 @@ export function evaluateGuess(guess: string, target: string): TileStatus[] {
   return result;
 }
 
-// Palavras-alvo extraídas do léxico oficial pt-br (fserb/pt-br)
+// Palavras secretas (alvo) extraídas e curadas da base oficial do Termo (1.442 palavras comuns sem nomes próprios/estrangeirismos)
 export const TARGET_WORDS: string[] = lexiconData.targetWords;
 
-// Conjunto de todos os palpites válidos aceitos (11.302 palavras de 5 letras)
+// Conjunto de todos os palpites válidos aceitos no vocabulário em português (11.910 palavras de 5 letras)
 export const VALID_GUESSES: Set<string> = new Set(lexiconData.validGuesses);
 
 export function isValidWord(word: string): boolean {
