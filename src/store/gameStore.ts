@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
@@ -38,6 +38,7 @@ interface GameState {
   shopItems: ShopItem[];
   rerollCost: number;
   lastRoundEarnings: RoundEarnings | null;
+  lensHint: LensHint | null;
   crtEnabled: boolean;
   notification: string | null;
   shakeBoard: boolean;
@@ -63,6 +64,8 @@ interface GameState {
   executeProbe: (customLetters?: string[]) => void;
   applyRetroEdit: (rowIndex: number, colIndex: number, newChar: string) => void;
   applySwapLetters: (rowIndex: number, col1: number, col2: number) => void;
+  applyThermalLens: (rowIndex: number, colIndex: number) => void;
+  applyThermalLensByKey: (key: string) => void;
   chooseDraftCard: (card: SkillCard) => void;
   toggleCrt: () => void;
   setNotification: (msg: string | null) => void;
@@ -254,6 +257,7 @@ export const useGameStore = create<GameState>()(
       shopItems: [],
       rerollCost: 2,
       lastRoundEarnings: null,
+      lensHint: null,
       crtEnabled: true,
       notification: null,
       shakeBoard: false,
@@ -289,6 +293,7 @@ export const useGameStore = create<GameState>()(
           shopItems: [],
           rerollCost: 2,
           lastRoundEarnings: null,
+          lensHint: null,
           notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
           shakeBoard: false,
           keyboardStatus: {},
@@ -321,6 +326,7 @@ export const useGameStore = create<GameState>()(
           draftChoices: [],
           shopItems: newShopItems,
           rerollCost: 2,
+          lensHint: null,
           keyboardStatus: {},
           targetingState: null,
           notification: `MODO INFINITO! Bem-vindo ao Mercado do Setor ${nextSector}!`
@@ -505,6 +511,7 @@ export const useGameStore = create<GameState>()(
           draftChoices: [],
           keyboardStatus: newKeyboardStatus,
           targetingState: null,
+          lensHint: null,
           notification: notificationMsg
         });
       },
@@ -790,6 +797,24 @@ export const useGameStore = create<GameState>()(
           });
           return;
         }
+
+        // --- Lente Térmica ---
+        if (skillId === 'lente_termica') {
+          if (evaluations.length === 0) {
+            set({ notification: 'Faça um palpite primeiro para usar a Lente Térmica!' });
+            return;
+          }
+          const hasYellow = evaluations.some(row => row.letters.some(l => l.status === 'present'));
+          if (!hasYellow) {
+            set({ notification: 'Nenhuma letra amarela encontrada para analisar com a Lente Térmica!' });
+            return;
+          }
+          set({
+            targetingState: { skillId: 'lente_termica', step: 'select_tile' },
+            notification: '🔍 Modo Lente Térmica: Clique em uma letra AMARELA (no tabuleiro ou teclado) para revelar sua direção!'
+          });
+          return;
+        }
       },
 
       cancelTargeting: () => {
@@ -998,6 +1023,92 @@ export const useGameStore = create<GameState>()(
           targetingState: null,
           notification: `Shift Swap aplicado! Letras permutadas na linha ${rowIndex + 1}.`
         });
+      },
+
+      applyThermalLens: (rowIndex: number, colIndex: number) => {
+        const { evaluations, targetWord, activeSkills } = get();
+        if (rowIndex < 0 || rowIndex >= evaluations.length) return;
+        const letterData = evaluations[rowIndex]?.letters?.[colIndex];
+        if (!letterData) return;
+
+        if (letterData.status !== 'present') {
+          set({ notification: 'Selecione uma letra AMARELA para analisar com a Lente Térmica!' });
+          return;
+        }
+
+        const char = letterData.char.toUpperCase();
+        const targetChars = targetWord.toUpperCase().split('');
+        const targetColumns = targetChars
+          .map((c, i) => (c === char ? i : -1))
+          .filter(i => i !== -1);
+
+        if (targetColumns.length === 0) {
+          set({ notification: `Não foi possível encontrar a letra [${char}] na palavra secreta.` });
+          return;
+        }
+
+        const leftCount = targetColumns.filter(c => c < colIndex).length;
+        const rightCount = targetColumns.filter(c => c > colIndex).length;
+
+        let direction: 'left' | 'right' | 'both' = 'left';
+        if (leftCount > 0 && rightCount > 0) {
+          direction = 'both';
+        } else if (rightCount > 0) {
+          direction = 'right';
+        } else {
+          direction = 'left';
+        }
+
+        const updatedSkills = consumeSkillCharge(activeSkills, 'lente_termica');
+        const directionText =
+          direction === 'left'
+            ? '⬅️ À ESQUERDA'
+            : direction === 'right'
+            ? '➡️ À DIREITA'
+            : '↔️ EM AMBOS OS LADOS';
+
+        const lensHint: LensHint = {
+          char,
+          rowIndex,
+          colIndex,
+          direction,
+          targetColumns
+        };
+
+        set({
+          activeSkills: updatedSkills,
+          lensHint,
+          targetingState: null,
+          notification: `🔍 Lente Térmica: A letra [${char}] na linha ${rowIndex + 1} está posicionada ${directionText} (coluna ${colIndex + 1})!`
+        });
+      },
+
+      applyThermalLensByKey: (key: string) => {
+        const { evaluations } = get();
+        const cleanKey = key.toUpperCase();
+
+        // Encontra a ocorrência mais recente da letra amarela nas avaliações
+        let foundRow = -1;
+        let foundCol = -1;
+        for (let r = evaluations.length - 1; r >= 0; r--) {
+          for (let c = 0; c < evaluations[r].letters.length; c++) {
+            if (evaluations[r].letters[c].char === cleanKey && evaluations[r].letters[c].status === 'present') {
+              foundRow = r;
+              foundCol = c;
+              break;
+            }
+          }
+          if (foundRow !== -1) break;
+        }
+
+        if (foundRow === -1 || foundCol === -1) {
+          set({
+            notification: `A tecla [${cleanKey}] não possui nenhuma ocorrência amarela para analisar!`
+          });
+          return;
+        }
+
+        get().applyThermalLens(foundRow, foundCol);
       },
 
       chooseDraftCard: (card: SkillCard) => {

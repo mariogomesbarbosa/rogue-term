@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { TileStatus } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check } from 'lucide-react';
+import { X, Check, Compass } from 'lucide-react';
 
 export const Board: React.FC = () => {
   const {
@@ -18,6 +18,8 @@ export const Board: React.FC = () => {
     cancelTargeting,
     applyRetroEdit,
     applySwapLetters,
+    applyThermalLens,
+    lensHint,
     currentBoss
   } = useGameStore();
 
@@ -35,7 +37,8 @@ export const Board: React.FC = () => {
     isSelected: boolean,
     isCurrentActive: boolean,
     isCurrentRow: boolean,
-    isGlitched: boolean = false
+    isGlitched: boolean = false,
+    isLensTargetable: boolean = false
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
     const base =
@@ -43,6 +46,13 @@ export const Board: React.FC = () => {
 
     if (isGlitched) {
       return base + 'bg-fuchsia-950/80 border-2 border-dashed border-fuchsia-500 text-fuchsia-300 shadow-[0_0_15px_rgba(217,70,239,0.35)] animate-pulse';
+    }
+
+    if (isLensTargetable) {
+      return (
+        base +
+        'cursor-pointer bg-amber-600/90 border-2 border-dashed border-cyan-300 text-amber-100 ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.6)] animate-pulse hover:scale-105'
+      );
     }
 
     if (isSelected) {
@@ -103,6 +113,11 @@ export const Board: React.FC = () => {
 
     if (!targetingState) return;
 
+    if (targetingState.skillId === 'lente_termica') {
+      applyThermalLens(rowIndex, colIndex);
+      return;
+    }
+
     if (targetingState.skillId === 'ctrl_z') {
       setSelectedLetterPos({ row: rowIndex, col: colIndex });
       setReplacementChar('');
@@ -136,12 +151,20 @@ export const Board: React.FC = () => {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mb-2 px-3 py-1.5 rounded-lg bg-amber-950/90 border border-amber-500/80 text-amber-200 text-xs font-mono flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+            className={`mb-2 px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.25)] ${
+              targetingState.skillId === 'lente_termica'
+                ? 'bg-cyan-950/90 border-cyan-500 text-cyan-200'
+                : 'bg-amber-950/90 border-amber-500/80 text-amber-200'
+            }`}
           >
             <span>
               {targetingState.skillId === 'ctrl_z'
                 ? '🎯 MODO RETRO-EDIÇÃO: Clique em uma letra para trocar.'
-                : '↔️ MODO ANAGRAMA: Clique em duas letras da mesma linha para inverter.'}
+                : targetingState.skillId === 'anagramador'
+                ? '↔️ MODO ANAGRAMA: Clique em duas letras da mesma linha para inverter.'
+                : targetingState.skillId === 'lente_termica'
+                ? '🔍 MODO LENTE TÉRMICA: Clique em uma letra AMARELA (tabuleiro ou teclado) para ver sua direção.'
+                : ''}
             </span>
             <button
               onClick={() => {
@@ -153,6 +176,24 @@ export const Board: React.FC = () => {
             >
               <X className="w-3.5 h-3.5" />
             </button>
+          </motion.div>
+        )}
+
+        {/* Banner de Resultado da Lente Térmica */}
+        {lensHint && !targetingState && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="mb-2 px-3 py-1.5 rounded-lg bg-cyan-950/90 border border-cyan-400 text-cyan-200 text-xs font-mono flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] backdrop-blur-sm"
+          >
+            <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>
+              <strong className="text-cyan-300">Lente Térmica [{lensHint.char}]:</strong>{' '}
+              {lensHint.direction === 'left' && '⬅️ Posição correta está À ESQUERDA da coluna escaneada.'}
+              {lensHint.direction === 'right' && '➡️ Posição correta está À DIREITA da coluna escaneada.'}
+              {lensHint.direction === 'both' && '↔️ Posições corretas em AMBOS OS LADOS da coluna escaneada.'}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -188,7 +229,9 @@ export const Board: React.FC = () => {
                   status = char ? 'tbd' : 'empty';
                 }
 
-                const isSelectable = !!targetingState && isEvaluated && !isGlitched;
+                const isLensTargeting = targetingState?.skillId === 'lente_termica';
+                const isLensTargetable = isLensTargeting && isEvaluated && status === 'present';
+                const isSelectable = !isGlitched && isEvaluated && (isLensTargeting ? status === 'present' : !!targetingState);
                 const isSelected =
                   selectedLetterPos?.row === rowIndex && selectedLetterPos?.col === colIndex;
                 const isCurrentActive = isCurrent && activeTileCol === colIndex && !targetingState;
@@ -205,10 +248,22 @@ export const Board: React.FC = () => {
                       isSelected,
                       isCurrentActive,
                       isCurrent,
-                      isGlitched
+                      isGlitched,
+                      isLensTargetable
                     )}
                   >
                     {char}
+
+                    {/* Badge de Direção da Lente Térmica */}
+                    {lensHint && lensHint.rowIndex === rowIndex && lensHint.colIndex === colIndex && (
+                      <span
+                        className="absolute -top-2 -right-2 px-1 py-0.5 rounded bg-cyan-400 text-stone-950 text-[10px] font-black shadow-md border border-cyan-200 flex items-center leading-none animate-bounce z-20 pointer-events-none"
+                        title={`Lente Térmica: ${lensHint.direction}`}
+                      >
+                        {lensHint.direction === 'left' ? '⬅️' : lensHint.direction === 'right' ? '➡️' : '↔️'}
+                      </span>
+                    )}
+
                     {/* Cursor piscante na posição ativa da linha de digitação */}
                     {isCurrentActive && !char && (
                       <span className="absolute bottom-1 w-3 sm:w-4 h-0.5 bg-amber-400 rounded-full animate-pulse" />
