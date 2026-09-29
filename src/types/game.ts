@@ -28,7 +28,27 @@ export interface SkillCard {
   rechargeEveryRounds?: number;
 }
 
-export type GamePhase = 'playing' | 'round_won' | 'drafting' | 'game_over' | 'victory';
+export type GamePhase = 'playing' | 'round_won' | 'drafting' | 'shop' | 'game_over' | 'victory';
+
+export interface ShopItem {
+  id: string;
+  type: 'card' | 'key_refill' | 'max_keys_upgrade';
+  price: number;
+  card?: SkillCard;
+  title: string;
+  description: string;
+  iconName: string;
+  bought: boolean;
+}
+
+export interface RoundEarnings {
+  baseReward: number;
+  efficiencyBonus: number;
+  bossBonus: number;
+  goldSwitchBonus: number;
+  interest: number;
+  total: number;
+}
 
 export type BossAnomalyId = 'key_jam' | 'switch_ghosting' | 'glitched_crt' | 'power_surge';
 

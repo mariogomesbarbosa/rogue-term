@@ -10,6 +10,7 @@ export const Header: React.FC = () => {
     keys,
     maxKeys,
     score,
+    coins,
     round,
     sector,
     stage,
@@ -65,6 +66,12 @@ export const Header: React.FC = () => {
           {keys}
         </span>
         <span className="text-[10px] text-stone-500">/{maxKeys}</span>
+      </div>
+
+      {/* Créditos ($) */}
+      <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-md bg-stone-900 border border-stone-800 text-amber-400 font-bold text-[11px]">
+        <span className="text-amber-500/70">$</span>
+        <span>{coins ?? 0}</span>
       </div>
 
       {/* Pontuação & Streak */}

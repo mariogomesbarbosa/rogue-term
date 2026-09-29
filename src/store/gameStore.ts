@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord } from '@/data/words';
-import { ALL_SKILLS, getRandomDraftChoices } from '@/data/skills';
+import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
 import confetti from 'canvas-confetti';
 
@@ -18,6 +18,7 @@ interface GameState {
   keys: number;
   maxKeys: number;
   score: number;
+  coins: number;
   round: number;
   sector: number;
   stage: number;
@@ -34,6 +35,9 @@ interface GameState {
   activeSkills: SkillCard[];
   passives: SkillCard[];
   draftChoices: SkillCard[];
+  shopItems: ShopItem[];
+  rerollCost: number;
+  lastRoundEarnings: RoundEarnings | null;
   crtEnabled: boolean;
   notification: string | null;
   shakeBoard: boolean;
@@ -44,6 +48,10 @@ interface GameState {
   startNewRun: () => void;
   startNextRound: () => void;
   continueEndless: () => void;
+  buyShopItem: (itemId: string) => void;
+  sellSkillCard: (cardId: string) => void;
+  rerollShop: () => void;
+  closeShopAndNextRound: () => void;
   setActiveTileCol: (col: number) => void;
   moveCursor: (direction: 'left' | 'right') => void;
   addLetter: (char: string) => void;
@@ -155,24 +163,44 @@ function calculateRoundWinState({
   const newScore = score + roundPoints;
   const newStreak = streak + 1;
 
+  // Economia de Créditos ($)
+  const baseReward = 3;
+  const efficiencyBonus = Math.max(0, 6 - guessIndex);
+  const bossBonus = isBossFight ? 5 : 0;
+  const goldSwitchBonus = hasGoldSwitch && hasRareLetter ? 4 : 0;
+  const currentCoins = state.coins ?? 4;
+  const interest = Math.min(5, Math.floor(currentCoins / 5));
+  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + interest;
+  const newCoins = currentCoins + totalCoinsEarned;
+
+  const roundEarnings: RoundEarnings = {
+    baseReward,
+    efficiencyBonus,
+    bossBonus,
+    goldSwitchBonus,
+    interest,
+    total: totalCoinsEarned
+  };
+
   const currentSkills = updatedSkills || activeSkills;
-  const draftChoices = getRandomDraftChoices(3, [
+  const existingIds = [
     ...currentSkills.map(s => s.id),
     ...passives.map(s => s.id)
-  ]);
+  ];
+  const newShopItems = generateShopItems(existingIds, sector);
 
   // Se venceu o Chefe do Setor 8 e não está no modo infinito -> Vitória da Run!
   const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
-  const nextGamePhase: GamePhase = isFinalVictory ? 'victory' : 'drafting';
+  const nextGamePhase: GamePhase = isFinalVictory ? 'victory' : 'shop';
 
   let winMessage = customWinMessage;
   if (!winMessage) {
     if (isFinalVictory) {
       winMessage = `🏆 VITÓRIA DO SISTEMA! O Mainframe Central foi derrotado no Setor ${sector}!`;
     } else if (isBossFight) {
-      winMessage = `💥 CHEFE DERROTADO! Setor ${sector} descriptografado! +${keysRestored} Teclas e +${roundPoints} Pontos!`;
+      winMessage = `💥 CHEFE DERROTADO! +${keysRestored} Teclas, +$${totalCoinsEarned} e +${roundPoints} Pontos! Loja aberta.`;
     } else {
-      winMessage = `Excelente! +${keysRestored} Teclas [T] recuperadas! +${roundPoints} Pontos.`;
+      winMessage = `Excelente! +${keysRestored} Teclas [T], +$${totalCoinsEarned} e +${roundPoints} Pontos!`;
     }
   }
 
@@ -183,9 +211,12 @@ function calculateRoundWinState({
     activeTileCol: 0,
     keys: newKeys,
     score: newScore,
+    coins: newCoins,
     streak: newStreak,
     keyboardStatus: updatedKeyboard,
-    draftChoices,
+    shopItems: newShopItems,
+    rerollCost: 2,
+    lastRoundEarnings: roundEarnings,
     gamePhase: nextGamePhase,
     targetingState: null,
     ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
@@ -199,6 +230,7 @@ export const useGameStore = create<GameState>()(
       keys: 15,
       maxKeys: 20,
       score: 0,
+      coins: 4,
       round: 1,
       sector: 1,
       stage: 1,
@@ -219,6 +251,9 @@ export const useGameStore = create<GameState>()(
       ],
       passives: [],
       draftChoices: [],
+      shopItems: [],
+      rerollCost: 2,
+      lastRoundEarnings: null,
       crtEnabled: true,
       notification: null,
       shakeBoard: false,
@@ -231,6 +266,7 @@ export const useGameStore = create<GameState>()(
           keys: 15,
           maxKeys: 20,
           score: 0,
+          coins: 4,
           round: 1,
           sector: 1,
           stage: 1,
@@ -250,6 +286,9 @@ export const useGameStore = create<GameState>()(
           ],
           passives: [],
           draftChoices: [],
+          shopItems: [],
+          rerollCost: 2,
+          lastRoundEarnings: null,
           notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
           shakeBoard: false,
           keyboardStatus: {},
@@ -258,9 +297,15 @@ export const useGameStore = create<GameState>()(
       },
 
       continueEndless: () => {
-        const { sector, round } = get();
+        const { sector, round, activeSkills, passives } = get();
         const nextSector = sector + 1;
         const nextWord = getRandomTargetWord();
+        const existingIds = [
+          ...activeSkills.map(s => s.id),
+          ...passives.map(s => s.id)
+        ];
+        const newShopItems = generateShopItems(existingIds, nextSector);
+
         set({
           endlessMode: true,
           sector: nextSector,
@@ -272,12 +317,145 @@ export const useGameStore = create<GameState>()(
           evaluations: [],
           currentGuess: ['', '', '', '', ''],
           activeTileCol: 0,
-          gamePhase: 'playing',
+          gamePhase: 'shop',
           draftChoices: [],
+          shopItems: newShopItems,
+          rerollCost: 2,
           keyboardStatus: {},
           targetingState: null,
-          notification: `MODO INFINITO! Bem-vindo ao Setor ${nextSector}!`
+          notification: `MODO INFINITO! Bem-vindo ao Mercado do Setor ${nextSector}!`
         });
+      },
+
+      buyShopItem: (itemId: string) => {
+        const { shopItems, coins, activeSkills, passives, keys, maxKeys } = get();
+        const item = shopItems.find(i => i.id === itemId);
+        if (!item || item.bought) return;
+
+        if (coins < item.price) {
+          set({
+            notification: `Créditos insuficientes! Você tem $${coins}, mas precisa de $${item.price}.`,
+            shakeBoard: true
+          });
+          setTimeout(() => set({ shakeBoard: false }), 400);
+          return;
+        }
+
+        if (item.type === 'card' && item.card) {
+          const card = item.card;
+          if (card.type === 'active') {
+            if (activeSkills.length >= 3) {
+              set({
+                notification: 'Slots de Cartas Ativas cheios (3/3)! Venda uma carta antes de comprar outra.',
+                shakeBoard: true
+              });
+              setTimeout(() => set({ shakeBoard: false }), 400);
+              return;
+            }
+            set({
+              coins: coins - item.price,
+              activeSkills: [...activeSkills, card],
+              shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
+              notification: `Adquirido: [${card.name}] por $${item.price}!`
+            });
+          } else {
+            if (passives.length >= 5) {
+              set({
+                notification: 'Slots de Relíquias Passivas cheios (5/5)! Venda uma relíquia antes de comprar outra.',
+                shakeBoard: true
+              });
+              setTimeout(() => set({ shakeBoard: false }), 400);
+              return;
+            }
+            // Efeito imediato: Keycaps PBT Reforçadas (+10 maxKeys, +3 keys)
+            let updatedMaxKeys = maxKeys;
+            let updatedKeys = keys;
+            if (card.id === 'keycaps_pbt') {
+              updatedMaxKeys += 10;
+              updatedKeys = Math.min(updatedMaxKeys, keys + 3);
+            }
+
+            set({
+              coins: coins - item.price,
+              passives: [...passives, card],
+              maxKeys: updatedMaxKeys,
+              keys: updatedKeys,
+              shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
+              notification: `Instalado: [${card.name}] por $${item.price}!`
+            });
+          }
+        } else if (item.type === 'key_refill') {
+          const newKeys = Math.min(maxKeys, keys + 3);
+          set({
+            coins: coins - item.price,
+            keys: newKeys,
+            shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
+            notification: `Manutenção realizada! +3 Teclas [T] restauradas por $${item.price}.`
+          });
+        } else if (item.type === 'max_keys_upgrade') {
+          const newMax = maxKeys + 5;
+          const newKeys = keys + 5;
+          set({
+            coins: coins - item.price,
+            maxKeys: newMax,
+            keys: newKeys,
+            shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
+            notification: `Chassi reforçado! Teto de Teclas expandido para ${newMax} por $${item.price}!`
+          });
+        }
+      },
+
+      sellSkillCard: (cardId: string) => {
+        const { activeSkills, passives, coins } = get();
+        const activeCard = activeSkills.find(s => s.id === cardId);
+        const passiveCard = passives.find(s => s.id === cardId);
+        const card = activeCard || passiveCard;
+        if (!card) return;
+
+        const sellValue = getCardSellValue(card.rarity);
+
+        if (activeCard) {
+          set({
+            activeSkills: activeSkills.filter(s => s.id !== cardId),
+            coins: coins + sellValue,
+            notification: `Vendido: [${card.name}] por +$${sellValue}!`
+          });
+        } else if (passiveCard) {
+          set({
+            passives: passives.filter(s => s.id !== cardId),
+            coins: coins + sellValue,
+            notification: `Desinstalado: [${card.name}] por +$${sellValue}!`
+          });
+        }
+      },
+
+      rerollShop: () => {
+        const { coins, rerollCost, sector, activeSkills, passives } = get();
+        if (coins < rerollCost) {
+          set({
+            notification: `Créditos insuficientes para Reroll! Custa $${rerollCost}.`,
+            shakeBoard: true
+          });
+          setTimeout(() => set({ shakeBoard: false }), 400);
+          return;
+        }
+
+        const existingIds = [
+          ...activeSkills.map(s => s.id),
+          ...passives.map(s => s.id)
+        ];
+        const newItems = generateShopItems(existingIds, sector);
+
+        set({
+          coins: coins - rerollCost,
+          rerollCost: rerollCost + 1,
+          shopItems: newItems,
+          notification: `Prateleira atualizada! (-$${rerollCost})`
+        });
+      },
+
+      closeShopAndNextRound: () => {
+        get().startNextRound();
       },
 
       startNextRound: () => {
@@ -862,6 +1040,7 @@ export const useGameStore = create<GameState>()(
         keys: state.keys,
         maxKeys: state.maxKeys,
         score: state.score,
+        coins: state.coins ?? 4,
         round: state.round,
         sector: state.sector ?? 1,
         stage: state.stage ?? 1,
@@ -878,6 +1057,9 @@ export const useGameStore = create<GameState>()(
         activeSkills: state.activeSkills,
         passives: state.passives,
         draftChoices: state.draftChoices,
+        shopItems: state.shopItems ?? [],
+        rerollCost: state.rerollCost ?? 2,
+        lastRoundEarnings: state.lastRoundEarnings ?? null,
         keyboardStatus: state.keyboardStatus,
         crtEnabled: state.crtEnabled
       })
