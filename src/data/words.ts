@@ -52,6 +52,16 @@ export const TARGET_WORDS: string[] = lexiconData.targetWords;
 // Conjunto de todos os palpites válidos aceitos no vocabulário em português (11.910 palavras de 5 letras)
 export const VALID_GUESSES: Set<string> = new Set(lexiconData.validGuesses);
 
+// Mapa de correspondência de palavras sem acento para suas formas canônicas acentuadas
+export const ACCENT_MAP: Record<string, string> =
+  (lexiconData as unknown as { accentMap: Record<string, string> }).accentMap || {};
+
+// Retorna a forma canônica da palavra com acentos e cedilhas (ex: ALCAR -> ALÇAR, SAUDE -> SAÚDE)
+export function getCanonicalWord(word: string): string {
+  const norm = normalizeWord(word);
+  return ACCENT_MAP[norm] || norm;
+}
+
 export function isValidWord(word: string): boolean {
   const norm = normalizeWord(word);
   if (norm.length !== 5) return false;
@@ -60,5 +70,6 @@ export function isValidWord(word: string): boolean {
 
 export function getRandomTargetWord(): string {
   const randomIndex = Math.floor(Math.random() * TARGET_WORDS.length);
-  return TARGET_WORDS[randomIndex];
+  const target = TARGET_WORDS[randomIndex];
+  return getCanonicalWord(target);
 }

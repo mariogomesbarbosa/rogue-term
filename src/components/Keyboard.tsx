@@ -3,6 +3,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { TileStatus } from '@/types/game';
+import { normalizeWord } from '@/data/words';
 import { Delete, CornerDownLeft, Radio, X, Lock } from 'lucide-react';
 
 const KEYBOARD_ROWS = [
@@ -36,18 +37,20 @@ export const Keyboard: React.FC = () => {
     (key: string) => {
       if (gamePhase !== 'playing') return;
 
+      const normKey = normalizeWord(key);
+
       // Se estiver no modo Sonda, clicar em uma letra seleciona/deseleciona para a sonda
       if (isProbeMode) {
-        if (/^[A-Z]$/.test(key)) {
-          toggleProbeLetter(key);
+        if (/^[A-Z]$/.test(normKey)) {
+          toggleProbeLetter(normKey);
         }
         return;
       }
 
       // Se estiver no modo Lente Térmica, clicar em uma letra amarela aciona a análise
       if (isLensMode) {
-        if (/^[A-Z]$/.test(key)) {
-          applyThermalLensByKey(key);
+        if (/^[A-Z]$/.test(normKey)) {
+          applyThermalLensByKey(normKey);
         }
         return;
       }
@@ -59,8 +62,8 @@ export const Keyboard: React.FC = () => {
         submitGuess();
       } else if (key === 'BACKSPACE') {
         removeLetter();
-      } else if (/^[A-Z]$/.test(key)) {
-        addLetter(key);
+      } else if (/^[A-Z]$/.test(normKey)) {
+        addLetter(normKey);
       }
     },
     [addLetter, removeLetter, submitGuess, gamePhase, targetingState, isProbeMode, isLensMode, toggleProbeLetter, applyThermalLensByKey]
@@ -86,13 +89,16 @@ export const Keyboard: React.FC = () => {
         return;
       }
 
-      const key = e.key.toUpperCase();
-      if (key === 'ENTER') {
+      const upperKey = e.key.toUpperCase();
+      if (upperKey === 'ENTER') {
         handleKeyPress('ENTER');
-      } else if (key === 'BACKSPACE') {
+      } else if (upperKey === 'BACKSPACE') {
         handleKeyPress('BACKSPACE');
-      } else if (/^[A-Z]$/.test(key)) {
-        handleKeyPress(key);
+      } else {
+        const normKey = normalizeWord(e.key);
+        if (/^[A-Z]$/.test(normKey)) {
+          handleKeyPress(normKey);
+        }
       }
     };
 

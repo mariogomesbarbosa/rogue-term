@@ -1,4 +1,5 @@
 import { Boss, BossAnomalyId } from '@/types/game';
+import { normalizeWord } from '@/data/words';
 
 interface BossTemplate {
   id: string;
@@ -52,7 +53,7 @@ export const BOSS_TEMPLATES: BossTemplate[] = [
 ];
 
 export function generateBossForSector(sector: number, targetWord: string): Boss {
-  const normTarget = targetWord.toUpperCase();
+  const normTarget = normalizeWord(targetWord);
 
   // No Setor 8 (Chefe Final da Run regular): Kernel Panic do Mainframe
   if (sector === 8) {

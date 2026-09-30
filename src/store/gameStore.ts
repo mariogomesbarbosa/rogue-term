@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails } from '@/types/game';
-import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord } from '@/data/words';
+import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord, getCanonicalWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
 import confetti from 'canvas-confetti';
@@ -87,14 +87,15 @@ function updateKeyboardStatus(
 ): Record<string, TileStatus> {
   const updated = { ...currentKeyboard };
   evaluatedRow.letters.forEach(({ char, status }) => {
-    const currentStatus = updated[char];
+    const keyChar = normalizeWord(char);
+    const currentStatus = updated[keyChar];
     if (status === 'correct') {
-      updated[char] = 'correct';
+      updated[keyChar] = 'correct';
     } else if (status === 'present' && currentStatus !== 'correct') {
-      updated[char] = 'present';
+      updated[keyChar] = 'present';
     } else if (status === 'absent') {
       if (currentStatus !== 'correct' && currentStatus !== 'present' && currentStatus !== 'probed_hit') {
-        updated[char] = 'absent';
+        updated[keyChar] = 'absent';
       }
     }
   });
@@ -146,7 +147,7 @@ function calculateRoundWinState({
 
   // Passiva: Switch Dourado (Letras raras dão +2 teclas extras)
   const hasGoldSwitch = passives.some(p => p.id === 'switch_dourado');
-  const hasRareLetter = /[XZKWYJ]/.test(targetWord);
+  const hasRareLetter = /[XZKWYJ]/.test(normalizeWord(targetWord));
   if (hasGoldSwitch && hasRareLetter) {
     keysRestored += 2;
   }
@@ -582,9 +583,11 @@ export const useGameStore = create<GameState>()(
         const hasEco = passives.some(p => p.id === 'eco_grafema');
         if (hasEco && evaluations.length > 0) {
           const lastEval = evaluations[evaluations.length - 1];
+          const normNext = normalizeWord(nextWord);
           lastEval.letters.forEach(l => {
-            if (l.status === 'correct' && nextWord.includes(l.char)) {
-              newKeyboardStatus[l.char] = 'correct';
+            const normChar = normalizeWord(l.char);
+            if (l.status === 'correct' && normNext.includes(normChar)) {
+              newKeyboardStatus[normChar] = 'correct';
             }
           });
         }
@@ -701,20 +704,23 @@ export const useGameStore = create<GameState>()(
 
         if (gamePhase !== 'playing') return;
 
-        const guessWord = currentGuess.join('');
+        const rawGuessWord = currentGuess.join('');
 
-        if (currentGuess.some(c => !c) || guessWord.length < 5) {
+        if (currentGuess.some(c => !c) || rawGuessWord.length < 5) {
           set({ notification: 'Preencha todas as 5 letras!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
         }
 
         // Validação no léxico
-        if (!isValidWord(guessWord)) {
+        if (!isValidWord(rawGuessWord)) {
           set({ notification: 'Palavra não encontrada no dicionário!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
         }
+
+        // Obter a forma canônica com acentos se houver (ex: ALCAR -> ALÇAR, SAUDE -> SAÚDE)
+        const guessWord = getCanonicalWord(rawGuessWord);
 
         // Checar passiva: Buffer de Teclado (Primeiro palpite grátis se acertar 2+ letras)
         const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
@@ -750,7 +756,7 @@ export const useGameStore = create<GameState>()(
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, evaluatedRow);
 
         // Verificar vitória
-        const isWin = guessWord === targetWord;
+        const isWin = normalizeWord(guessWord) === normalizeWord(targetWord);
 
         if (isWin) {
           const winState = calculateRoundWinState({
@@ -879,7 +885,8 @@ export const useGameStore = create<GameState>()(
         // --- Keycap Iluminado ---
         if (skillId === 'keycap_iluminado') {
           const vowels = ['A', 'E', 'I', 'O', 'U'];
-          const targetVowels = targetWord.split('').filter(char => vowels.includes(char));
+          const normTarget = normalizeWord(targetWord);
+          const targetVowels = normTarget.split('').filter(char => vowels.includes(char));
 
           if (targetVowels.length === 0) {
             set({ notification: 'Esta palavra não contém vogais simples!' });
@@ -985,18 +992,20 @@ export const useGameStore = create<GameState>()(
         const updatedKeyboard = { ...keyboardStatus };
         const hits: string[] = [];
         const misses: string[] = [];
+        const normTarget = normalizeWord(targetWord);
 
         candidateLetters.forEach(char => {
-          if (targetWord.includes(char)) {
-            if (updatedKeyboard[char] !== 'correct' && updatedKeyboard[char] !== 'present') {
-              updatedKeyboard[char] = 'probed_hit';
+          const normChar = normalizeWord(char);
+          if (normTarget.includes(normChar)) {
+            if (updatedKeyboard[normChar] !== 'correct' && updatedKeyboard[normChar] !== 'present') {
+              updatedKeyboard[normChar] = 'probed_hit';
             }
-            hits.push(char);
+            hits.push(normChar);
           } else {
-            if (!updatedKeyboard[char]) {
-              updatedKeyboard[char] = 'probed_miss';
+            if (!updatedKeyboard[normChar]) {
+              updatedKeyboard[normChar] = 'probed_miss';
             }
-            misses.push(char);
+            misses.push(normChar);
           }
         });
 
@@ -1024,17 +1033,18 @@ export const useGameStore = create<GameState>()(
         if (!/^[A-Z]$/.test(cleanChar)) return;
 
         const targetGuess = guesses[rowIndex];
-        const newChars = targetGuess.split('');
-        newChars[colIndex] = cleanChar;
-        const updatedGuess = newChars.join('');
+        const rawChars = normalizeWord(targetGuess).split('');
+        rawChars[colIndex] = cleanChar;
+        const rawUpdated = rawChars.join('');
+        const canonicalUpdated = getCanonicalWord(rawUpdated);
 
         // Recalcula cores para aquela linha inteira
-        let updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        let updatedStatuses = evaluateGuess(canonicalUpdated, targetWord);
         if (currentBoss?.anomaly.id === 'switch_ghosting') {
           updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
         const updatedRow: EvaluatedRow = {
-          letters: updatedGuess.split('').map((c, i) => ({
+          letters: canonicalUpdated.split('').map((c, i) => ({
             char: c,
             status: updatedStatuses[i]
           })),
@@ -1042,7 +1052,7 @@ export const useGameStore = create<GameState>()(
         };
 
         const newGuesses = [...guesses];
-        newGuesses[rowIndex] = updatedGuess;
+        newGuesses[rowIndex] = canonicalUpdated;
 
         const newEvaluations = [...evaluations];
         newEvaluations[rowIndex] = updatedRow;
@@ -1052,7 +1062,7 @@ export const useGameStore = create<GameState>()(
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
         // Se a palavra editada acertou a palavra secreta!
-        if (updatedGuess === targetWord) {
+        if (normalizeWord(canonicalUpdated) === normalizeWord(targetWord)) {
           const winState = calculateRoundWinState({
             state: get(),
             newGuesses,
@@ -1080,19 +1090,20 @@ export const useGameStore = create<GameState>()(
       applySwapLetters: (rowIndex: number, col1: number, col2: number) => {
         const { evaluations, guesses, targetWord, activeSkills, keyboardStatus, keys, currentBoss } = get();
         const targetGuess = guesses[rowIndex];
-        const chars = targetGuess.split('');
+        const chars = normalizeWord(targetGuess).split('');
         const temp = chars[col1];
         chars[col1] = chars[col2];
         chars[col2] = temp;
-        const updatedGuess = chars.join('');
+        const rawUpdated = chars.join('');
+        const canonicalUpdated = getCanonicalWord(rawUpdated);
 
-        let updatedStatuses = evaluateGuess(updatedGuess, targetWord);
+        let updatedStatuses = evaluateGuess(canonicalUpdated, targetWord);
         if (currentBoss?.anomaly.id === 'switch_ghosting') {
           updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
 
         const updatedRow: EvaluatedRow = {
-          letters: updatedGuess.split('').map((c, i) => ({
+          letters: canonicalUpdated.split('').map((c, i) => ({
             char: c,
             status: updatedStatuses[i]
           })),
@@ -1100,7 +1111,7 @@ export const useGameStore = create<GameState>()(
         };
 
         const newGuesses = [...guesses];
-        newGuesses[rowIndex] = updatedGuess;
+        newGuesses[rowIndex] = canonicalUpdated;
 
         const newEvaluations = [...evaluations];
         newEvaluations[rowIndex] = updatedRow;
@@ -1110,7 +1121,7 @@ export const useGameStore = create<GameState>()(
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
         // Se a palavra permutada acertou a palavra secreta!
-        if (updatedGuess === targetWord) {
+        if (normalizeWord(canonicalUpdated) === normalizeWord(targetWord)) {
           const winState = calculateRoundWinState({
             state: get(),
             newGuesses,
@@ -1146,8 +1157,8 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
-        const char = letterData.char.toUpperCase();
-        const targetChars = targetWord.toUpperCase().split('');
+        const char = normalizeWord(letterData.char);
+        const targetChars = normalizeWord(targetWord).split('');
         const targetColumns = targetChars
           .map((c, i) => (c === char ? i : -1))
           .filter(i => i !== -1);
@@ -1195,14 +1206,14 @@ export const useGameStore = create<GameState>()(
 
       applyThermalLensByKey: (key: string) => {
         const { evaluations } = get();
-        const cleanKey = key.toUpperCase();
+        const cleanKey = normalizeWord(key);
 
         // Encontra a ocorrência mais recente da letra amarela nas avaliações
         let foundRow = -1;
         let foundCol = -1;
         for (let r = evaluations.length - 1; r >= 0; r--) {
           for (let c = 0; c < evaluations[r].letters.length; c++) {
-            if (evaluations[r].letters[c].char === cleanKey && evaluations[r].letters[c].status === 'present') {
+            if (normalizeWord(evaluations[r].letters[c].char) === cleanKey && evaluations[r].letters[c].status === 'present') {
               foundRow = r;
               foundCol = c;
               break;
