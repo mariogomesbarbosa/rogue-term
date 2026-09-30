@@ -19,7 +19,8 @@ import {
   Clock,
   Hourglass,
   X,
-  Info
+  Info,
+  ShieldBan
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -66,8 +67,10 @@ const RARITY_STYLES: Record<Rarity, { border: string; badge: string; text: strin
 };
 
 export const SkillsBar: React.FC = () => {
-  const { activeSkills, passives, activateSkill, targetingState, gamePhase } = useGameStore();
+  const { activeSkills, passives, activateSkill, targetingState, gamePhase, currentBoss } = useGameStore();
   const [selectedPassive, setSelectedPassive] = useState<SkillCard | null>(null);
+
+  const isFirewallActive = currentBoss?.anomaly.id === 'firewall_lock';
 
   const handleCardClick = (card: SkillCard) => {
     if (gamePhase !== 'playing') return;
@@ -89,24 +92,30 @@ export const SkillsBar: React.FC = () => {
             return (
               <motion.div
                 key={skill.id}
-                whileHover={{ scale: 1.04, y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => hasCharges && handleCardClick(skill)}
+                whileHover={!isFirewallActive ? { scale: 1.04, y: -1 } : {}}
+                whileTap={!isFirewallActive ? { scale: 0.96 } : {}}
+                onClick={() => handleCardClick(skill)}
                 style={{
-                  boxShadow: isSelected
+                  boxShadow: isFirewallActive
+                    ? '0 0 10px rgba(225,29,72,0.3)'
+                    : isSelected
                     ? '0 0 15px rgba(245,158,11,0.5)'
                     : `0 2px 8px ${style.glow}`
                 }}
                 className={`relative cursor-pointer rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5 border-2 flex flex-col justify-between transition-all shrink-0 min-w-[105px] sm:min-w-[130px] md:min-w-[140px] ${
-                  style.border
+                  isFirewallActive
+                    ? 'border-rose-700/80 bg-stone-950/80 opacity-60'
+                    : style.border
                 } ${
                   isSelected
                     ? 'bg-amber-950/90 ring-2 ring-amber-400'
+                    : isFirewallActive
+                    ? 'grayscale-[50%]'
                     : hasCharges
                     ? 'bg-stone-900/95 hover:bg-stone-850'
                     : 'bg-stone-950/60 opacity-50 grayscale cursor-not-allowed'
                 }`}
-                title={skill.description}
+                title={isFirewallActive ? 'FIREWALL DO CHEFE: Habilidade ativa bloqueada!' : skill.description}
               >
                 {/* Topo do Card */}
                 <div className="flex items-center justify-between gap-1">
@@ -117,8 +126,14 @@ export const SkillsBar: React.FC = () => {
                     </span>
                   </div>
 
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-stone-800 border border-stone-700 font-bold shrink-0">
-                    {hasCharges ? (
+                  <span className={`text-[9px] px-1 py-0.2 rounded border font-bold shrink-0 flex items-center gap-0.5 ${
+                    isFirewallActive
+                      ? 'bg-rose-950 border-rose-600 text-rose-300'
+                      : 'bg-stone-800 border-stone-700'
+                  }`}>
+                    {isFirewallActive ? (
+                      <ShieldBan className="w-3 h-3 text-rose-400" />
+                    ) : hasCharges ? (
                       <span className="text-amber-400">⚡{skill.chargesCurrent}</span>
                     ) : (
                       <span className="text-stone-500">0</span>

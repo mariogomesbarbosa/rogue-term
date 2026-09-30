@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, AlertTriangle, Lock, Ghost, Tv, Zap, Cpu } from 'lucide-react';
+import { Skull, AlertTriangle, Ghost, Tv, Zap, Cpu, ShieldAlert, ShieldBan, Flame } from 'lucide-react';
 
 export const BossAlertBanner: React.FC = () => {
   const { currentBoss, stage, sector } = useGameStore();
@@ -12,14 +12,20 @@ export const BossAlertBanner: React.FC = () => {
 
   const renderBossIcon = () => {
     switch (currentBoss.anomaly.id) {
-      case 'key_jam':
-        return <Lock className="w-5 h-5 text-rose-400 animate-pulse" />;
-      case 'switch_ghosting':
-        return <Ghost className="w-5 h-5 text-purple-400 animate-pulse" />;
-      case 'glitched_crt':
-        return <Tv className="w-5 h-5 text-fuchsia-400 animate-pulse" />;
       case 'power_surge':
         return <Zap className="w-5 h-5 text-amber-400 animate-pulse" />;
+      case 'hard_mode':
+        return <ShieldAlert className="w-5 h-5 text-amber-400 animate-pulse" />;
+      case 'glitched_crt':
+        return <Tv className="w-5 h-5 text-fuchsia-400 animate-pulse" />;
+      case 'firewall_lock':
+        return <ShieldBan className="w-5 h-5 text-rose-400 animate-pulse" />;
+      case 'switch_ghosting':
+        return <Ghost className="w-5 h-5 text-purple-400 animate-pulse" />;
+      case 'short_circuit':
+        return <Flame className="w-5 h-5 text-orange-400 animate-pulse" />;
+      case 'kernel_panic':
+        return <Cpu className="w-5 h-5 text-red-500 animate-pulse" />;
       default:
         return <Skull className="w-5 h-5 text-rose-400 animate-pulse" />;
     }

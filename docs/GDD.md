@@ -121,12 +121,16 @@ O jogador possui dois slots de equipamento:
 
 ## 5. Estrutura de Dificuldade & Palavras-Chefe (Boss Blinds)
 
-A cada 3 ou 4 rodadas normais, o jogador enfrenta uma **Palavra-Chefe com Anomalia**:
+No final de cada setor (Fase 3/3), o jogador enfrenta uma **Palavra-Chefe com Anomalia de Hardware**:
 
-*   **Chefe "O Bug do Teclado":** Algumas letras comuns ficam bloqueadas e não podem ser digitadas.
-*   **Chefe "Ghosting de Switch":** As vogais não mostram status amarelo (ou são verdes ou cinzas).
-*   **Chefe "Monitor Desfocado":** A 3ª coluna do tabuleiro fica borrada até a 3ª tentativa.
-*   **Chefe "Teclado Duplo":** O jogador deve resolver **duas palavras simultâneas** usando os mesmos palpites.
+*   **OVERVOLT.HEX (Sobrecarga de Circuito):** Picos elétricos! Cada palpite incorreto consome **2 Teclas [T]** em vez de 1.
+*   **HARD-CORE.SYS (Protocolo Estrito):** Firmware em Modo Hardcore! Letras verdes e amarelas devem ser mantidas obrigatoriamente, e letras cinzas descartadas não podem ser reutilizadas.
+*   **GLITCH-CRT.EXE (Monitor Glitchado):** Linha de varredura quebrada! A 3ª coluna do terminal sofre estática e esconde seu status até o 3º palpite.
+*   **FIREWALL.DAEMON (Firewall do Sistema):** Defesa cibernética ativa! Todas as habilidades ativas (Ctrl+Z, Sonda, Lente, etc.) ficam desativadas durante o combate.
+*   **PHANTOM-SWITCH (Ghosting de Switch):** Interferência na matriz do teclado! O terminal não registra letras amarelas (você só sabe se a letra for verde ou ausente).
+*   **SHORT-CIRCUIT.ERR (Curto-Circuito Crítico):** Se um palpite tiver 0 acertos (todas as 5 letras ausentes), uma descarga elétrica queima **+2 Teclas [T] extras**!
+*   **KERNEL-PANIC // NÚCLEO (Chefe Final - Setor 8):** O Mainframe Central ativa defesa total: combinação de **Ghosting de Switch (sem amarelas)** + **Sobrecarga (2 Teclas por erro)**!
+*   **TECLADO DUPLO (Fase Avançada / Futuro):** O jogador deve resolver duas palavras simultâneas usando os mesmos palpites.
 
 ---
 

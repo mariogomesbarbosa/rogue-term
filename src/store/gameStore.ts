@@ -719,6 +719,73 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
+        // Checar anomalia de Chefe: Protocolo Estrito (Modo Hardcore)
+        if (currentBoss?.anomaly.id === 'hard_mode' && evaluations.length > 0) {
+          const normGuess = normalizeWord(rawGuessWord);
+
+          // 1. Letras verdes anteriores devem permanecer na mesma posição
+          for (let r = 0; r < evaluations.length; r++) {
+            const row = evaluations[r];
+            for (let c = 0; c < row.letters.length; c++) {
+              if (row.letters[c].status === 'correct') {
+                const requiredChar = normalizeWord(row.letters[c].char);
+                if (normGuess[c] !== requiredChar) {
+                  set({
+                    notification: `Protocolo Estrito: A posição ${c + 1} deve manter a letra verde '${requiredChar}'!`,
+                    shakeBoard: true
+                  });
+                  setTimeout(() => set({ shakeBoard: false }), 500);
+                  return;
+                }
+              }
+            }
+          }
+
+          // 2. Letras amarelas anteriores devem estar presentes no palpite
+          const presentChars = new Set<string>();
+          for (let r = 0; r < evaluations.length; r++) {
+            const row = evaluations[r];
+            for (let c = 0; c < row.letters.length; c++) {
+              if (row.letters[c].status === 'present') {
+                presentChars.add(normalizeWord(row.letters[c].char));
+              }
+            }
+          }
+          for (const char of presentChars) {
+            if (!normGuess.includes(char)) {
+              set({
+                notification: `Protocolo Estrito: A letra amarela '${char}' deve ser incluída no palpite!`,
+                shakeBoard: true
+              });
+              setTimeout(() => set({ shakeBoard: false }), 500);
+              return;
+            }
+          }
+
+          // 3. Letras cinzas confirmadas não podem ser reutilizadas
+          for (let r = 0; r < evaluations.length; r++) {
+            const row = evaluations[r];
+            for (let c = 0; c < row.letters.length; c++) {
+              if (row.letters[c].status === 'absent') {
+                const absentChar = normalizeWord(row.letters[c].char);
+                if (!presentChars.has(absentChar) && normGuess.includes(absentChar)) {
+                  const isGreenElsewhere = evaluations.some(ev =>
+                    ev.letters.some(l => l.status === 'correct' && normalizeWord(l.char) === absentChar)
+                  );
+                  if (!isGreenElsewhere) {
+                    set({
+                      notification: `Protocolo Estrito: A letra cinza '${absentChar}' já foi descartada e não pode ser usada!`,
+                      shakeBoard: true
+                    });
+                    setTimeout(() => set({ shakeBoard: false }), 500);
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+
         // Obter a forma canônica com acentos se houver (ex: ALCAR -> ALÇAR, SAUDE -> SAÚDE)
         const guessWord = getCanonicalWord(rawGuessWord);
 
@@ -726,18 +793,24 @@ export const useGameStore = create<GameState>()(
         const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
         let evalStatuses = evaluateGuess(guessWord, targetWord);
 
-        // Checar anomalia de Chefe: Ghosting de Switch (letras amarelas viram ausentes)
-        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+        // Checar anomalia de Chefe: Ghosting de Switch ou Kernel Panic (letras amarelas viram ausentes)
+        if (currentBoss?.anomaly.id === 'switch_ghosting' || currentBoss?.anomaly.id === 'kernel_panic') {
           evalStatuses = evalStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
 
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;
         const isFreeGuess = hasBuffer && guesses.length === 0 && correctOrPresentCount >= 2;
 
-        // Checar anomalia de Chefe: Sobrecarga de Circuito (Power Surge - consome 2 teclas por palpite incorreto)
-        const isPowerSurge = currentBoss?.anomaly.id === 'power_surge';
+        // Checar anomalia de Chefe: Sobrecarga de Circuito ou Kernel Panic (consome 2 teclas por palpite incorreto)
+        const isPowerSurge = currentBoss?.anomaly.id === 'power_surge' || currentBoss?.anomaly.id === 'kernel_panic';
         const baseCost = isPowerSurge ? 2 : 1;
-        const keysCost = isFreeGuess ? 0 : baseCost;
+
+        // Checar anomalia de Chefe: Curto-Circuito (0 acertos em um palpite incorreto queima +2 teclas extras)
+        const isWin = normalizeWord(guessWord) === normalizeWord(targetWord);
+        const isShortCircuit = currentBoss?.anomaly.id === 'short_circuit' && correctOrPresentCount === 0 && !isWin;
+        const extraCost = isShortCircuit ? 2 : 0;
+
+        const keysCost = isFreeGuess ? 0 : (baseCost + extraCost);
         const remainingKeys = keys - keysCost;
 
         // Construir linha avaliada
@@ -754,9 +827,6 @@ export const useGameStore = create<GameState>()(
 
         // Atualizar status do teclado
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, evaluatedRow);
-
-        // Verificar vitória
-        const isWin = normalizeWord(guessWord) === normalizeWord(targetWord);
 
         if (isWin) {
           const winState = calculateRoundWinState({
@@ -801,6 +871,12 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
+        const roundNotification = isShortCircuit
+          ? '⚡ CURTO-CIRCUITO! Nenhuma letra acertada: -2 Teclas extras queimadas!'
+          : isFreeGuess
+          ? 'Buffer ativado! Tentativa grátis.'
+          : null;
+
         // Continua jogando a rodada
         set({
           guesses: newGuesses,
@@ -809,12 +885,27 @@ export const useGameStore = create<GameState>()(
           activeTileCol: 0,
           keys: remainingKeys,
           keyboardStatus: updatedKeyboard,
-          notification: isFreeGuess ? 'Buffer ativado! Tentativa grátis.' : null
+          notification: roundNotification,
+          shakeBoard: isShortCircuit
         });
+        if (isShortCircuit) {
+          setTimeout(() => set({ shakeBoard: false }), 500);
+        }
       },
 
       activateSkill: (skillId: string) => {
-        const { activeSkills, targetWord, evaluations, guesses, keys, maxKeys, keyboardStatus } = get();
+        const { activeSkills, targetWord, evaluations, guesses, keys, maxKeys, keyboardStatus, currentBoss } = get();
+
+        // Checar anomalia de Chefe: Firewall Ativo (bloqueia todas as habilidades ativas)
+        if (currentBoss?.anomaly.id === 'firewall_lock') {
+          set({
+            notification: '🛡️ FIREWALL ATIVO: Habilidades ativas bloqueadas pelo Chefe!',
+            shakeBoard: true
+          });
+          setTimeout(() => set({ shakeBoard: false }), 500);
+          return;
+        }
+
         const skill = activeSkills.find(s => s.id === skillId);
         if (!skill || skill.chargesCurrent <= 0) {
           set({ notification: 'Esta habilidade não possui cargas restantes!' });
@@ -1040,7 +1131,7 @@ export const useGameStore = create<GameState>()(
 
         // Recalcula cores para aquela linha inteira
         let updatedStatuses = evaluateGuess(canonicalUpdated, targetWord);
-        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+        if (currentBoss?.anomaly.id === 'switch_ghosting' || currentBoss?.anomaly.id === 'kernel_panic') {
           updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
         const updatedRow: EvaluatedRow = {
@@ -1098,7 +1189,7 @@ export const useGameStore = create<GameState>()(
         const canonicalUpdated = getCanonicalWord(rawUpdated);
 
         let updatedStatuses = evaluateGuess(canonicalUpdated, targetWord);
-        if (currentBoss?.anomaly.id === 'switch_ghosting') {
+        if (currentBoss?.anomaly.id === 'switch_ghosting' || currentBoss?.anomaly.id === 'kernel_panic') {
           updatedStatuses = updatedStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
 

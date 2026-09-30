@@ -74,7 +74,14 @@ export interface LensHint {
   targetColumns: number[];
 }
 
-export type BossAnomalyId = 'key_jam' | 'switch_ghosting' | 'glitched_crt' | 'power_surge';
+export type BossAnomalyId =
+  | 'power_surge'
+  | 'hard_mode'
+  | 'glitched_crt'
+  | 'firewall_lock'
+  | 'switch_ghosting'
+  | 'short_circuit'
+  | 'kernel_panic';
 
 export interface BossAnomaly {
   id: BossAnomalyId;
