@@ -107,6 +107,9 @@ export const ShopModal: React.FC = () => {
               {lastRoundEarnings.goldSwitchBonus > 0 && (
                 <span>Switch Dourado: <strong className="text-amber-400">+${lastRoundEarnings.goldSwitchBonus}</strong></span>
               )}
+              {lastRoundEarnings.timeBonusCredits && lastRoundEarnings.timeBonusCredits > 0 ? (
+                <span>Agilidade: <strong className="text-emerald-400">+${lastRoundEarnings.timeBonusCredits}</strong></span>
+              ) : null}
               <span>Juros: <strong className="text-cyan-400">+${lastRoundEarnings.interest}</strong></span>
               <span className="border-l border-stone-700 pl-2 font-black text-amber-400">
                 Total: +${lastRoundEarnings.total}

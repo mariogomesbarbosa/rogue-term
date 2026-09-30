@@ -46,8 +46,24 @@ export interface RoundEarnings {
   efficiencyBonus: number;
   bossBonus: number;
   goldSwitchBonus: number;
+  timeBonusCredits?: number;
   interest: number;
   total: number;
+}
+
+export type SpeedTier = 'ultra' | 'fast' | 'steady' | 'tactical';
+
+export interface RoundScoreDetails {
+  basePoints: number;
+  guessBonus: number;
+  bossBonus: number;
+  timeBonus: number;
+  timeSeconds: number;
+  speedTier: SpeedTier;
+  speedLabel: string;
+  multiplier: number;
+  totalRoundPoints: number;
+  timeSkillNotes: string[];
 }
 
 export interface LensHint {

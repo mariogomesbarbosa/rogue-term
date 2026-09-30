@@ -16,6 +16,8 @@ import {
   Zap,
   Activity,
   Layers,
+  Clock,
+  Hourglass,
   X,
   Info
 } from 'lucide-react';
@@ -31,7 +33,9 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Coins: <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   Zap: <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
   Activity: <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
-  Layers: <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+  Layers: <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  Clock: <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />,
+  Hourglass: <Hourglass className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 };
 
 const RARITY_STYLES: Record<Rarity, { border: string; badge: string; text: string; glow: string }> = {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
@@ -38,6 +38,9 @@ interface GameState {
   shopItems: ShopItem[];
   rerollCost: number;
   lastRoundEarnings: RoundEarnings | null;
+  roundStartTime: number;
+  lastRoundDuration: number;
+  lastRoundScoreDetails: RoundScoreDetails | null;
   lensHint: LensHint | null;
   crtEnabled: boolean;
   notification: string | null;
@@ -49,6 +52,7 @@ interface GameState {
   startNewRun: () => void;
   startNextRound: () => void;
   continueEndless: () => void;
+  proceedFromRoundWin: () => void;
   buyShopItem: (itemId: string) => void;
   sellSkillCard: (cardId: string) => void;
   rerollShop: () => void;
@@ -147,14 +151,69 @@ function calculateRoundWinState({
     keysRestored += 2;
   }
 
+  // Cálculo do Tempo gasto na rodada
+  const now = Date.now();
+  const startTime = state.roundStartTime || now;
+  const rawDuration = Math.max(1, Math.round((now - startTime) / 1000));
+
+  // Faixas de velocidade e bônus de tempo base
+  let speedTier: 'ultra' | 'fast' | 'steady' | 'tactical' = 'tactical';
+  let speedLabel = 'Tático (>60s)';
+  let baseTimeBonus = 100;
+  let timeMultiplierBonus = 0.0;
+
+  if (rawDuration <= 15) {
+    speedTier = 'ultra';
+    speedLabel = 'Ultra Rápido (≤15s)';
+    baseTimeBonus = 1200;
+    timeMultiplierBonus = 0.5;
+  } else if (rawDuration <= 30) {
+    speedTier = 'fast';
+    speedLabel = 'Ágil (≤30s)';
+    baseTimeBonus = 700;
+    timeMultiplierBonus = 0.25;
+  } else if (rawDuration <= 60) {
+    speedTier = 'steady';
+    speedLabel = 'Constante (≤60s)';
+    baseTimeBonus = 350;
+    timeMultiplierBonus = 0.1;
+  }
+
+  const timeSkillNotes: string[] = [];
+
+  // Passiva: Cronômetro de Quartzo (se <= 30s, dobra bônus de tempo e ganha +$2)
+  const hasCronometroQuartzo = passives.some(p => p.id === 'cronometro_quartzo');
+  let timeBonus = baseTimeBonus;
+  let timeBonusCredits = 0;
+  if (hasCronometroQuartzo && rawDuration <= 30) {
+    timeBonus = baseTimeBonus * 2;
+    timeBonusCredits = 2;
+    timeSkillNotes.push('Cronômetro de Quartzo: Bônus de tempo dobrado e +$2 Créditos!');
+  }
+
+  // Passiva: Overclock de Switch (se <= 20s, +0.6x multiplicador e +2 Teclas extras)
+  const hasOverclock = passives.some(p => p.id === 'overclock_switch');
+  if (hasOverclock && rawDuration <= 20) {
+    timeMultiplierBonus += 0.6;
+    keysRestored += 2;
+    timeSkillNotes.push('Overclock de Switch: +0.6x Multiplicador e +2 Teclas [T] extras!');
+  }
+
   const newKeys = Math.min(maxKeys, remainingKeys + keysRestored);
 
   // Cálculo de Pontuação (Chefes concedem bônus robusto)
-  const basePoints = round * 1000 + (6 - Math.min(6, guessIndex)) * 250 + (isBossFight ? 2500 : 0);
+  const basePoints = round * 1000;
+  const guessBonus = (6 - Math.min(6, guessIndex)) * 250;
+  const bossBonusPoints = isBossFight ? 2500 : 0;
+  const totalBase = basePoints + guessBonus + bossBonusPoints + timeBonus;
+
   let multiplier = 1.0;
   if (guessIndex === 1) multiplier = 4.0;
   else if (guessIndex === 2) multiplier = 2.5;
   else if (guessIndex === 3) multiplier = 1.8;
+  else if (guessIndex === 4) multiplier = 1.2;
+
+  multiplier += timeMultiplierBonus;
 
   // Passiva: RGB Sincronizado
   const hasRgb = passives.some(p => p.id === 'rgb_sincronizado');
@@ -162,7 +221,8 @@ function calculateRoundWinState({
     multiplier += (streak + 1) * 0.3;
   }
 
-  const roundPoints = Math.round(basePoints * multiplier);
+  multiplier = Math.round(multiplier * 100) / 100;
+  const roundPoints = Math.round(totalBase * multiplier);
   const newScore = score + roundPoints;
   const newStreak = streak + 1;
 
@@ -173,7 +233,7 @@ function calculateRoundWinState({
   const goldSwitchBonus = hasGoldSwitch && hasRareLetter ? 4 : 0;
   const currentCoins = state.coins ?? 4;
   const interest = Math.min(5, Math.floor(currentCoins / 5));
-  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + interest;
+  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + timeBonusCredits + interest;
   const newCoins = currentCoins + totalCoinsEarned;
 
   const roundEarnings: RoundEarnings = {
@@ -181,8 +241,22 @@ function calculateRoundWinState({
     efficiencyBonus,
     bossBonus,
     goldSwitchBonus,
+    timeBonusCredits,
     interest,
     total: totalCoinsEarned
+  };
+
+  const scoreDetails: RoundScoreDetails = {
+    basePoints,
+    guessBonus,
+    bossBonus: bossBonusPoints,
+    timeBonus,
+    timeSeconds: rawDuration,
+    speedTier,
+    speedLabel,
+    multiplier,
+    totalRoundPoints: roundPoints,
+    timeSkillNotes
   };
 
   const currentSkills = updatedSkills || activeSkills;
@@ -192,16 +266,16 @@ function calculateRoundWinState({
   ];
   const newShopItems = generateShopItems(existingIds, sector);
 
-  // Se venceu o Chefe do Setor 8 e não está no modo infinito -> Vitória da Run!
+  // Agora vamos sempre para 'round_won' para mostrar a tela de vitória com a palavra, tempo e pontos!
   const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
-  const nextGamePhase: GamePhase = isFinalVictory ? 'victory' : 'shop';
+  const nextGamePhase: GamePhase = 'round_won';
 
   let winMessage = customWinMessage;
   if (!winMessage) {
     if (isFinalVictory) {
       winMessage = `🏆 VITÓRIA DO SISTEMA! O Mainframe Central foi derrotado no Setor ${sector}!`;
     } else if (isBossFight) {
-      winMessage = `💥 CHEFE DERROTADO! +${keysRestored} Teclas, +$${totalCoinsEarned} e +${roundPoints} Pontos! Loja aberta.`;
+      winMessage = `💥 CHEFE DERROTADO! +${keysRestored} Teclas, +$${totalCoinsEarned} e +${roundPoints} Pontos!`;
     } else {
       winMessage = `Excelente! +${keysRestored} Teclas [T], +$${totalCoinsEarned} e +${roundPoints} Pontos!`;
     }
@@ -220,6 +294,8 @@ function calculateRoundWinState({
     shopItems: newShopItems,
     rerollCost: 2,
     lastRoundEarnings: roundEarnings,
+    lastRoundDuration: rawDuration,
+    lastRoundScoreDetails: scoreDetails,
     gamePhase: nextGamePhase,
     targetingState: null,
     ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
@@ -257,6 +333,9 @@ export const useGameStore = create<GameState>()(
       shopItems: [],
       rerollCost: 2,
       lastRoundEarnings: null,
+      roundStartTime: Date.now(),
+      lastRoundDuration: 0,
+      lastRoundScoreDetails: null,
       lensHint: null,
       crtEnabled: true,
       notification: null,
@@ -293,12 +372,26 @@ export const useGameStore = create<GameState>()(
           shopItems: [],
           rerollCost: 2,
           lastRoundEarnings: null,
+          roundStartTime: Date.now(),
+          lastRoundDuration: 0,
+          lastRoundScoreDetails: null,
           lensHint: null,
           notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
           shakeBoard: false,
           keyboardStatus: {},
           targetingState: null
         });
+      },
+
+      proceedFromRoundWin: () => {
+        const { stage, sector, maxSectors, endlessMode, currentBoss } = get();
+        const isBossFight = stage === 3 && !!currentBoss;
+        const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
+        if (isFinalVictory) {
+          set({ gamePhase: 'victory' });
+        } else {
+          set({ gamePhase: 'shop' });
+        }
       },
 
       continueEndless: () => {
@@ -326,6 +419,9 @@ export const useGameStore = create<GameState>()(
           draftChoices: [],
           shopItems: newShopItems,
           rerollCost: 2,
+          roundStartTime: Date.now(),
+          lastRoundDuration: 0,
+          lastRoundScoreDetails: null,
           lensHint: null,
           keyboardStatus: {},
           targetingState: null,
@@ -509,6 +605,9 @@ export const useGameStore = create<GameState>()(
           activeTileCol: 0,
           gamePhase: 'playing',
           draftChoices: [],
+          roundStartTime: Date.now(),
+          lastRoundDuration: 0,
+          lastRoundScoreDetails: null,
           keyboardStatus: newKeyboardStatus,
           targetingState: null,
           lensHint: null,
@@ -812,6 +911,17 @@ export const useGameStore = create<GameState>()(
           set({
             targetingState: { skillId: 'lente_termica', step: 'select_tile' },
             notification: '🔍 Modo Lente Térmica: Clique em uma letra AMARELA (no tabuleiro ou teclado) para revelar sua direção!'
+          });
+          return;
+        }
+
+        // --- Buffer Congelado (Pausa no Clock) ---
+        if (skillId === 'buffer_congelado') {
+          const updatedSkills = consumeSkillCharge(activeSkills, skillId);
+          set({
+            roundStartTime: Date.now(),
+            activeSkills: updatedSkills,
+            notification: '❄️ Buffer Congelado ativado! Cronômetro reiniciado para 0s — bônus de velocidade máxima garantido!'
           });
           return;
         }
@@ -1171,6 +1281,9 @@ export const useGameStore = create<GameState>()(
         shopItems: state.shopItems ?? [],
         rerollCost: state.rerollCost ?? 2,
         lastRoundEarnings: state.lastRoundEarnings ?? null,
+        roundStartTime: state.roundStartTime ?? Date.now(),
+        lastRoundDuration: state.lastRoundDuration ?? 0,
+        lastRoundScoreDetails: state.lastRoundScoreDetails ?? null,
         keyboardStatus: state.keyboardStatus,
         crtEnabled: state.crtEnabled
       })

@@ -74,6 +74,18 @@ export const ALL_SKILLS: SkillCard[] = [
     chargesCurrent: 2,
     iconName: 'Compass'
   },
+  {
+    id: 'buffer_congelado',
+    name: 'Buffer Congelado',
+    type: 'active',
+    rarity: 'rare',
+    powerScore: 65,
+    tagline: 'Pausa no clock',
+    description: 'Zera o cronômetro da rodada atual, garantindo a classificação Ultra Rápido e o bônus máximo de tempo ao vencer!',
+    chargesMax: 2,
+    chargesCurrent: 2,
+    iconName: 'Hourglass'
+  },
 
   // --- PASSIVAS (HARDWARE & SWITCHES MODIFICADOS) ---
   {
@@ -99,6 +111,30 @@ export const ALL_SKILLS: SkillCard[] = [
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Coins'
+  },
+  {
+    id: 'cronometro_quartzo',
+    name: 'Cronômetro de Quartzo',
+    type: 'passive',
+    rarity: 'uncommon',
+    powerScore: 55,
+    tagline: 'Recompensa por agilidade',
+    description: 'Se decifrar a palavra em até 30 segundos, dobra o bônus de pontos por tempo e concede +$2 créditos extras.',
+    chargesMax: 0,
+    chargesCurrent: 0,
+    iconName: 'Clock'
+  },
+  {
+    id: 'overclock_switch',
+    name: 'Overclock de Switch',
+    type: 'passive',
+    rarity: 'rare',
+    powerScore: 70,
+    tagline: 'Dopamina e cadência',
+    description: 'Se decifrar a palavra em até 20 segundos, concede +0.6x de multiplicador de pontuação e restaura +2 Teclas [T] extras!',
+    chargesMax: 0,
+    chargesCurrent: 0,
+    iconName: 'Zap'
   },
   {
     id: 'buffer_teclado',

@@ -3,6 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
+import { RoundTimer } from './RoundTimer';
 import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
@@ -109,6 +110,9 @@ export const BalatroSidebar: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Cronômetro da Rodada (Fator Tempo & Ritmo) */}
+        <RoundTimer />
 
         {/* Painel Duplo: Teclas [T] & Créditos ($) */}
         <div className="grid grid-cols-2 gap-2">

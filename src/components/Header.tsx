@@ -3,6 +3,7 @@
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
+import { RoundTimer } from './RoundTimer';
 import { Tv, RotateCcw, Flame, Skull } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -49,7 +50,10 @@ export const Header: React.FC = () => {
               )}
             </span>
           </div>
-          <span className="text-[8px] text-stone-500 font-bold">Palavra #{round}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] text-stone-500 font-bold">#{round}</span>
+            <RoundTimer compact />
+          </div>
         </div>
       </div>
 
