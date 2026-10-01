@@ -65,13 +65,21 @@ export const DailyRunModal: React.FC = () => {
   };
 
   const handleStartDaily = () => {
-    sound.playVictoryFanfare();
+    try {
+      sound.playVictoryFanfare();
+    } catch {
+      // Audio fallback
+    }
     startDailyRun();
     closeDailyModal();
   };
 
   const handleStartFree = () => {
-    sound.playKeyThock('Enter');
+    try {
+      sound.playKeyThock('Enter');
+    } catch {
+      // Audio fallback
+    }
     startNewRun();
     closeDailyModal();
   };
@@ -79,7 +87,11 @@ export const DailyRunModal: React.FC = () => {
   const handleStartCustom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customInput.trim()) return;
-    sound.playVictoryFanfare();
+    try {
+      sound.playVictoryFanfare();
+    } catch {
+      // Audio fallback
+    }
     startCustomSeedRun(customInput.trim().toUpperCase());
     closeDailyModal();
   };
