@@ -5,6 +5,7 @@ import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord, getCano
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
 import confetti from 'canvas-confetti';
+import { sound } from '@/utils/sound';
 
 interface TargetingState {
   skillId: string;
@@ -43,6 +44,7 @@ interface GameState {
   lastRoundScoreDetails: RoundScoreDetails | null;
   lensHint: LensHint | null;
   crtEnabled: boolean;
+  soundEnabled: boolean;
   notification: string | null;
   shakeBoard: boolean;
   keyboardStatus: Record<string, TileStatus>;
@@ -72,6 +74,7 @@ interface GameState {
   applyThermalLensByKey: (key: string) => void;
   chooseDraftCard: (card: SkillCard) => void;
   toggleCrt: () => void;
+  toggleSound: () => void;
   setNotification: (msg: string | null) => void;
 }
 
@@ -128,6 +131,7 @@ function calculateRoundWinState({
   } catch {
     // No-op if confetti fails
   }
+  setTimeout(() => sound.playVictoryFanfare(), 650);
 
   const { targetWord, passives, maxKeys, round, streak, score, activeSkills, sector, stage, maxSectors, endlessMode, currentBoss } = state;
 
@@ -339,6 +343,7 @@ export const useGameStore = create<GameState>()(
       lastRoundScoreDetails: null,
       lensHint: null,
       crtEnabled: true,
+      soundEnabled: true,
       notification: null,
       shakeBoard: false,
       keyboardStatus: {},
@@ -436,6 +441,7 @@ export const useGameStore = create<GameState>()(
         if (!item || item.bought) return;
 
         if (coins < item.price) {
+          sound.playErrorBuzz();
           set({
             notification: `Créditos insuficientes! Você tem $${coins}, mas precisa de $${item.price}.`,
             shakeBoard: true
@@ -448,6 +454,7 @@ export const useGameStore = create<GameState>()(
           const card = item.card;
           if (card.type === 'active') {
             if (activeSkills.length >= 3) {
+              sound.playErrorBuzz();
               set({
                 notification: 'Slots de Cartas Ativas cheios (3/3)! Venda uma carta antes de comprar outra.',
                 shakeBoard: true
@@ -455,6 +462,7 @@ export const useGameStore = create<GameState>()(
               setTimeout(() => set({ shakeBoard: false }), 400);
               return;
             }
+            sound.playCoinCollect();
             set({
               coins: coins - item.price,
               activeSkills: [...activeSkills, card],
@@ -463,6 +471,7 @@ export const useGameStore = create<GameState>()(
             });
           } else {
             if (passives.length >= 5) {
+              sound.playErrorBuzz();
               set({
                 notification: 'Slots de Relíquias Passivas cheios (5/5)! Venda uma relíquia antes de comprar outra.',
                 shakeBoard: true
@@ -478,6 +487,7 @@ export const useGameStore = create<GameState>()(
               updatedKeys = Math.min(updatedMaxKeys, keys + 3);
             }
 
+            sound.playCoinCollect();
             set({
               coins: coins - item.price,
               passives: [...passives, card],
@@ -488,6 +498,7 @@ export const useGameStore = create<GameState>()(
             });
           }
         } else if (item.type === 'key_refill') {
+          sound.playCoinCollect();
           const newKeys = Math.min(maxKeys, keys + 3);
           set({
             coins: coins - item.price,
@@ -496,6 +507,7 @@ export const useGameStore = create<GameState>()(
             notification: `Manutenção realizada! +3 Teclas [T] restauradas por $${item.price}.`
           });
         } else if (item.type === 'max_keys_upgrade') {
+          sound.playCoinCollect();
           const newMax = maxKeys + 5;
           const newKeys = keys + 5;
           set({
@@ -516,6 +528,7 @@ export const useGameStore = create<GameState>()(
         if (!card) return;
 
         const sellValue = getCardSellValue(card.rarity);
+        sound.playCoinCollect();
 
         if (activeCard) {
           set({
@@ -535,6 +548,7 @@ export const useGameStore = create<GameState>()(
       rerollShop: () => {
         const { coins, rerollCost, sector, activeSkills, passives } = get();
         if (coins < rerollCost) {
+          sound.playErrorBuzz();
           set({
             notification: `Créditos insuficientes para Reroll! Custa $${rerollCost}.`,
             shakeBoard: true
@@ -543,6 +557,7 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
+        sound.playCoinCollect();
         const existingIds = [
           ...activeSkills.map(s => s.id),
           ...passives.map(s => s.id)
@@ -596,6 +611,10 @@ export const useGameStore = create<GameState>()(
           ? `⚠️ ALERTA DE CHEFE: ${nextBoss.name} detectado! ${nextBoss.anomaly.tagline}`
           : `Setor ${nextSector} - Fase ${nextStage}/3 iniciada!`;
 
+        if (nextBoss) {
+          sound.playBossAlert();
+        }
+
         set({
           round: nextRound,
           sector: nextSector,
@@ -641,6 +660,7 @@ export const useGameStore = create<GameState>()(
         if (/^[A-Z]$/.test(clean)) {
           // Checar anomalia de Chefe: Bug do Teclado (Key Jam)
           if (currentBoss?.disabledLetters?.includes(clean)) {
+            sound.playErrorBuzz();
             set({
               notification: `⚠️ Tecla [${clean}] emperrada pelo Bug do Teclado (${currentBoss.name})!`,
               shakeBoard: true
@@ -648,6 +668,8 @@ export const useGameStore = create<GameState>()(
             setTimeout(() => set({ shakeBoard: false }), 450);
             return;
           }
+
+          sound.playKeyThock(clean);
 
           const updatedGuess = [...currentGuess];
           updatedGuess[activeTileCol] = clean;
@@ -674,6 +696,8 @@ export const useGameStore = create<GameState>()(
       removeLetter: () => {
         const { currentGuess, activeTileCol, gamePhase, targetingState } = get();
         if (gamePhase !== 'playing' || targetingState) return;
+
+        sound.playBackspaceClack();
 
         const updatedGuess = [...currentGuess];
 
@@ -707,6 +731,7 @@ export const useGameStore = create<GameState>()(
         const rawGuessWord = currentGuess.join('');
 
         if (currentGuess.some(c => !c) || rawGuessWord.length < 5) {
+          sound.playErrorBuzz();
           set({ notification: 'Preencha todas as 5 letras!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
@@ -714,6 +739,7 @@ export const useGameStore = create<GameState>()(
 
         // Validação no léxico
         if (!isValidWord(rawGuessWord)) {
+          sound.playErrorBuzz();
           set({ notification: 'Palavra não encontrada no dicionário!', shakeBoard: true });
           setTimeout(() => set({ shakeBoard: false }), 500);
           return;
@@ -730,6 +756,7 @@ export const useGameStore = create<GameState>()(
               if (row.letters[c].status === 'correct') {
                 const requiredChar = normalizeWord(row.letters[c].char);
                 if (normGuess[c] !== requiredChar) {
+                  sound.playErrorBuzz();
                   set({
                     notification: `Protocolo Estrito: A posição ${c + 1} deve manter a letra verde '${requiredChar}'!`,
                     shakeBoard: true
@@ -753,6 +780,7 @@ export const useGameStore = create<GameState>()(
           }
           for (const char of presentChars) {
             if (!normGuess.includes(char)) {
+              sound.playErrorBuzz();
               set({
                 notification: `Protocolo Estrito: A letra amarela '${char}' deve ser incluída no palpite!`,
                 shakeBoard: true
@@ -773,6 +801,7 @@ export const useGameStore = create<GameState>()(
                     ev.letters.some(l => l.status === 'correct' && normalizeWord(l.char) === absentChar)
                   );
                   if (!isGreenElsewhere) {
+                    sound.playErrorBuzz();
                     set({
                       notification: `Protocolo Estrito: A letra cinza '${absentChar}' já foi descartada e não pode ser usada!`,
                       shakeBoard: true
@@ -786,6 +815,9 @@ export const useGameStore = create<GameState>()(
           }
         }
 
+        // Submissão válida: Som pesado de Enter
+        sound.playEnterThock();
+
         // Obter a forma canônica com acentos se houver (ex: ALCAR -> ALÇAR, SAUDE -> SAÚDE)
         const guessWord = getCanonicalWord(rawGuessWord);
 
@@ -797,6 +829,11 @@ export const useGameStore = create<GameState>()(
         if (currentBoss?.anomaly.id === 'switch_ghosting' || currentBoss?.anomaly.id === 'kernel_panic') {
           evalStatuses = evalStatuses.map(s => (s === 'present' ? 'absent' : s));
         }
+
+        // Tocar avaliação sequencial de cada letra (flip e tons harmoniosos)
+        evalStatuses.forEach((st, idx) => {
+          setTimeout(() => sound.playLetterEvaluation(st, idx), (idx + 1) * 110);
+        });
 
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;
         const isFreeGuess = hasBuffer && guesses.length === 0 && correctOrPresentCount >= 2;
@@ -843,6 +880,7 @@ export const useGameStore = create<GameState>()(
 
         // Verificar derrota por limite de 6 tentativas preenchidas no grid
         if (newGuesses.length >= 6) {
+          sound.playGameOver();
           set({
             guesses: newGuesses,
             evaluations: newEvaluations,
@@ -858,6 +896,7 @@ export const useGameStore = create<GameState>()(
 
         // Verificar derrota por falta de Teclas
         if (remainingKeys <= 0) {
+          sound.playGameOver();
           set({
             guesses: newGuesses,
             evaluations: newEvaluations,
@@ -898,6 +937,7 @@ export const useGameStore = create<GameState>()(
 
         // Checar anomalia de Chefe: Firewall Ativo (bloqueia todas as habilidades ativas)
         if (currentBoss?.anomaly.id === 'firewall_lock') {
+          sound.playErrorBuzz();
           set({
             notification: '🛡️ FIREWALL ATIVO: Habilidades ativas bloqueadas pelo Chefe!',
             shakeBoard: true
@@ -908,6 +948,7 @@ export const useGameStore = create<GameState>()(
 
         const skill = activeSkills.find(s => s.id === skillId);
         if (!skill || skill.chargesCurrent <= 0) {
+          sound.playErrorBuzz();
           set({ notification: 'Esta habilidade não possui cargas restantes!' });
           return;
         }
@@ -915,9 +956,11 @@ export const useGameStore = create<GameState>()(
         // --- Ctrl+Z (Retro-Edição) ---
         if (skillId === 'ctrl_z') {
           if (evaluations.length === 0) {
+            sound.playErrorBuzz();
             set({ notification: 'Você precisa ter feito pelo menos 1 palpite para usar o Ctrl+Z!' });
             return;
           }
+          sound.playSkillActivate();
           set({
             targetingState: { skillId: 'ctrl_z', step: 'select_tile' },
             notification: 'Modo Ctrl+Z: Clique na letra de uma linha anterior que você deseja substituir!'
@@ -928,9 +971,11 @@ export const useGameStore = create<GameState>()(
         // --- Shift Swap (Anagramador) ---
         if (skillId === 'anagramador') {
           if (evaluations.length === 0) {
+            sound.playErrorBuzz();
             set({ notification: 'Faça um palpite primeiro para permutar letras!' });
             return;
           }
+          sound.playSkillActivate();
           set({
             targetingState: { skillId: 'anagramador', step: 'select_tile' },
             notification: 'Selecione a 1ª letra da tentativa para trocar de posição.'
@@ -941,9 +986,11 @@ export const useGameStore = create<GameState>()(
         // --- Backspace Quântico ---
         if (skillId === 'backspace_quantico') {
           if (evaluations.length === 0) {
+            sound.playErrorBuzz();
             set({ notification: 'Nenhuma tentativa para apagar!' });
             return;
           }
+          sound.playSkillActivate();
           const newEvals = evaluations.slice(0, -1);
           const newGuesses = guesses.slice(0, -1);
           const refundedKeys = Math.min(maxKeys, keys + 1);
@@ -962,6 +1009,7 @@ export const useGameStore = create<GameState>()(
 
         // --- Sonda de Circuito ---
         if (skillId === 'sonda_circuito') {
+          sound.playSkillActivate();
           set({
             targetingState: {
               skillId: 'sonda_circuito',
@@ -980,10 +1028,12 @@ export const useGameStore = create<GameState>()(
           const targetVowels = normTarget.split('').filter(char => vowels.includes(char));
 
           if (targetVowels.length === 0) {
+            sound.playErrorBuzz();
             set({ notification: 'Esta palavra não contém vogais simples!' });
             return;
           }
 
+          sound.playSkillActivate();
           const revealed = targetVowels[0];
           const updatedSkills = consumeSkillCharge(activeSkills, skillId);
 
@@ -998,14 +1048,17 @@ export const useGameStore = create<GameState>()(
         // --- Lente Térmica ---
         if (skillId === 'lente_termica') {
           if (evaluations.length === 0) {
+            sound.playErrorBuzz();
             set({ notification: 'Faça um palpite primeiro para usar a Lente Térmica!' });
             return;
           }
           const hasYellow = evaluations.some(row => row.letters.some(l => l.status === 'present'));
           if (!hasYellow) {
+            sound.playErrorBuzz();
             set({ notification: 'Nenhuma letra amarela encontrada para analisar com a Lente Térmica!' });
             return;
           }
+          sound.playSkillActivate();
           set({
             targetingState: { skillId: 'lente_termica', step: 'select_tile' },
             notification: '🔍 Modo Lente Térmica: Clique em uma letra AMARELA (no tabuleiro ou teclado) para revelar sua direção!'
@@ -1015,6 +1068,7 @@ export const useGameStore = create<GameState>()(
 
         // --- Buffer Congelado (Pausa no Clock) ---
         if (skillId === 'buffer_congelado') {
+          sound.playSkillActivate();
           const updatedSkills = consumeSkillCharge(activeSkills, skillId);
           set({
             roundStartTime: Date.now(),
@@ -1101,6 +1155,7 @@ export const useGameStore = create<GameState>()(
         });
 
         const updatedSkills = consumeSkillCharge(activeSkills, 'sonda_circuito');
+        sound.playSkillActivate();
 
         let msg = '';
         if (hits.length > 0) {
@@ -1149,6 +1204,7 @@ export const useGameStore = create<GameState>()(
         newEvaluations[rowIndex] = updatedRow;
 
         const updatedSkills = consumeSkillCharge(activeSkills, 'ctrl_z');
+        sound.playSkillActivate();
 
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
@@ -1208,6 +1264,7 @@ export const useGameStore = create<GameState>()(
         newEvaluations[rowIndex] = updatedRow;
 
         const updatedSkills = consumeSkillCharge(activeSkills, 'anagramador');
+        sound.playSkillActivate();
 
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, updatedRow);
 
@@ -1244,6 +1301,7 @@ export const useGameStore = create<GameState>()(
         if (!letterData) return;
 
         if (letterData.status !== 'present') {
+          sound.playErrorBuzz();
           set({ notification: 'Selecione uma letra AMARELA para analisar com a Lente Térmica!' });
           return;
         }
@@ -1255,6 +1313,7 @@ export const useGameStore = create<GameState>()(
           .filter(i => i !== -1);
 
         if (targetColumns.length === 0) {
+          sound.playErrorBuzz();
           set({ notification: `Não foi possível encontrar a letra [${char}] na palavra secreta.` });
           return;
         }
@@ -1272,6 +1331,7 @@ export const useGameStore = create<GameState>()(
         }
 
         const updatedSkills = consumeSkillCharge(activeSkills, 'lente_termica');
+        sound.playSkillActivate();
         const directionText =
           direction === 'left'
             ? '⬅️ À ESQUERDA'
@@ -1352,6 +1412,10 @@ export const useGameStore = create<GameState>()(
         set(state => ({ crtEnabled: !state.crtEnabled }));
       },
 
+      toggleSound: () => {
+        set(state => ({ soundEnabled: !state.soundEnabled }));
+      },
+
       setNotification: (msg: string | null) => {
         set({ notification: msg });
       }
@@ -1387,7 +1451,8 @@ export const useGameStore = create<GameState>()(
         lastRoundDuration: state.lastRoundDuration ?? 0,
         lastRoundScoreDetails: state.lastRoundScoreDetails ?? null,
         keyboardStatus: state.keyboardStatus,
-        crtEnabled: state.crtEnabled
+        crtEnabled: state.crtEnabled,
+        soundEnabled: state.soundEnabled !== false
       })
     }
   )

@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, Skull } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -19,6 +19,8 @@ export const Header: React.FC = () => {
     streak,
     crtEnabled,
     toggleCrt,
+    soundEnabled,
+    toggleSound,
     startNewRun
   } = useGameStore();
 
@@ -91,8 +93,20 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Ações (CRT & Novo Jogo) */}
+      {/* Ações (Som, CRT & Novo Jogo) */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={toggleSound}
+          className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${
+            soundEnabled
+              ? 'bg-amber-950/40 border-amber-600/70 text-amber-400'
+              : 'bg-stone-900 border-stone-800 text-stone-500'
+          }`}
+          title={soundEnabled ? 'Silenciar som de teclado' : 'Ativar som de teclado'}
+        >
+          {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+        </button>
+
         <button
           onClick={toggleCrt}
           className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${

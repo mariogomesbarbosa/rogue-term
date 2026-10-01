@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
@@ -21,6 +21,8 @@ export const BalatroSidebar: React.FC = () => {
     streak,
     crtEnabled,
     toggleCrt,
+    soundEnabled,
+    toggleSound,
     startNewRun
   } = useGameStore();
 
@@ -179,6 +181,19 @@ export const BalatroSidebar: React.FC = () => {
 
       {/* Base: Controles e Atalhos */}
       <div className="flex flex-col gap-2 pt-2 border-t border-stone-800/80">
+        <button
+          onClick={toggleSound}
+          className={`w-full py-2 px-3 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            soundEnabled
+              ? 'bg-amber-950/40 border-amber-600/70 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+              : 'bg-stone-900 border-stone-800 text-stone-500 hover:text-stone-300'
+          }`}
+          title={soundEnabled ? 'Silenciar áudio mecânico' : 'Ativar áudio mecânico'}
+        >
+          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          <span>Áudio Mecânico: {soundEnabled ? 'LIGADO' : 'MUTADO'}</span>
+        </button>
+
         <button
           onClick={toggleCrt}
           className={`w-full py-2 px-3 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
