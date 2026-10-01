@@ -21,7 +21,7 @@ export const ALL_SKILLS: SkillCard[] = [
     rarity: 'common',
     powerScore: 25,
     tagline: 'Verificação sem custo',
-    description: 'Escolha 3 letras no teclado: o sistema analisa se alguma delas pertence à palavra secreta sem consumir Teclas [T].',
+    description: 'Escolha 3 letras no teclado: o sistema analisa se alguma delas pertence à palavra secreta sem gastar uma tentativa no tabuleiro.',
     chargesMax: 3,
     chargesCurrent: 3,
     iconName: 'Cpu'
@@ -33,7 +33,7 @@ export const ALL_SKILLS: SkillCard[] = [
     rarity: 'legendary',
     powerScore: 85,
     tagline: 'Apague a história',
-    description: 'Apaga a última linha de tentativa errada do tabuleiro e reembolsa a Tecla [T] gasta.',
+    description: 'Apaga a última linha de tentativa errada do tabuleiro, liberando aquela tentativa de volta para um novo palpite!',
     chargesMax: 1,
     chargesCurrent: 1,
     iconName: 'Delete'
@@ -116,10 +116,10 @@ export const ALL_SKILLS: SkillCard[] = [
     id: 'keycaps_pbt',
     name: 'Keycaps PBT Reforçadas',
     type: 'passive',
-    rarity: 'common',
-    powerScore: 30,
+    rarity: 'uncommon',
+    powerScore: 60,
     tagline: 'Durabilidade máxima',
-    description: 'Aumenta o limite máximo de Teclas em +10 e restaura +4 Teclas imediatamente ao equipar.',
+    description: 'Aumenta permanentemente o limite máximo de Vidas em +1 [❤️] e restaura +1 Vida imediatamente ao equipar!',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Shield'
@@ -129,9 +129,9 @@ export const ALL_SKILLS: SkillCard[] = [
     name: 'Switch Dourado (Midas)',
     type: 'passive',
     rarity: 'uncommon',
-    powerScore: 45,
+    powerScore: 50,
     tagline: 'Ganhos luxuosos',
-    description: 'Palavras que contenham letras raras (X, Z, K, W, Y, J) concedem o dobro de pontos e +2 Teclas bônus ao acertar.',
+    description: 'Palavras que contenham letras raras (X, Z, K, W, Y, J) concedem o dobro de pontos e +$3 créditos bônus ao acertar.',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Coins'
@@ -155,22 +155,22 @@ export const ALL_SKILLS: SkillCard[] = [
     rarity: 'rare',
     powerScore: 70,
     tagline: 'Dopamina e cadência',
-    description: 'Se decifrar a palavra em até 20 segundos, concede +0.6x de multiplicador de pontuação e restaura +2 Teclas [T] extras!',
+    description: 'Se decifrar a palavra em até 20 segundos, concede +0.8x de multiplicador de pontuação e +$2 créditos extras!',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Zap'
   },
   {
     id: 'buffer_teclado',
-    name: 'Buffer de Digitação',
+    name: 'Buffer de Sobrecarga',
     type: 'passive',
     rarity: 'rare',
-    powerScore: 65,
-    tagline: 'Primeiro palpite grátis',
-    description: 'O primeiro palpite de cada rodada não gasta Tecla [T] se encontrar pelo menos 2 letras (amarelas ou verdes).',
+    powerScore: 75,
+    tagline: 'Proteção contra colapso',
+    description: 'Uma vez por partida, ao sofrer uma falha que esgotaria sua última Vida, o buffer absorve a pane crítica e evita a derrota!',
     chargesMax: 0,
     chargesCurrent: 0,
-    iconName: 'Zap'
+    iconName: 'Shield'
   },
   {
     id: 'rgb_sincronizado',
@@ -215,7 +215,7 @@ export const ALL_SKILLS: SkillCard[] = [
     rarity: 'rare',
     powerScore: 70,
     tagline: 'Operação invisível',
-    description: 'Se vencer a rodada sem utilizar nenhuma habilidade ativa, ganha +$4 créditos extras e restaura +2 Teclas [T]!',
+    description: 'Se vencer a rodada sem utilizar nenhuma habilidade ativa, ganha +$5 créditos extras e +0.4x no multiplicador!',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'VolumeX'
@@ -237,9 +237,9 @@ export const ALL_SKILLS: SkillCard[] = [
     name: 'Pasta Térmica de Prata',
     type: 'passive',
     rarity: 'common',
-    powerScore: 35,
-    tagline: 'Dissipação de calor',
-    description: 'Se um palpite errar completamente (0 letras acertadas), dissipa o calor e reembolsa a Tecla [T] gasta (1x por rodada).',
+    powerScore: 40,
+    tagline: 'Dissipação de emergência',
+    description: 'Na 6ª tentativa, se a palavra ainda não foi decifrada, dissipa o superaquecimento e concede +1 Palpite de Emergência (7ª linha)!',
     chargesMax: 0,
     chargesCurrent: 0,
     iconName: 'Shield'
@@ -321,27 +321,27 @@ export function generateShopItems(existingSkillIds: string[], sector: number, ha
     });
   });
 
-  // 2. Serviço de Teclas: Kit de Recarga Rápida (+3 Teclas [T])
-  const refillPrice = hasDiscount ? 2 : 3;
+  // 2. Serviço de Integridade: Kit de Reparo Emergencial (+1 Vida [❤️])
+  const refillPrice = hasDiscount ? 5 : 6;
   items.push({
-    id: `shop_key_refill_${Date.now()}`,
-    type: 'key_refill',
+    id: `shop_life_refill_${Date.now()}`,
+    type: 'life_refill',
     price: refillPrice,
-    title: 'Kit de Lubrificante / Recarga',
-    description: 'Restaura imediatamente +3 Teclas [T] para o seu fôlego.',
-    iconName: 'Zap',
+    title: 'Kit de Reparo Emergencial',
+    description: 'Restaura imediatamente +1 Vida [❤️] de integridade do sistema.',
+    iconName: 'Heart',
     bought: false
   });
 
-  // 3. Upgrade de Hardware: Expansão de Chassi (+5 Teclas Max & +5 Teclas)
-  const chassisPrice = hasDiscount ? 6 : 7;
+  // 3. Upgrade de Hardware: Expansão de Núcleo (+1 Vida Max & +1 Vida)
+  const chassisPrice = hasDiscount ? 9 : 10;
   items.push({
-    id: `shop_max_keys_${Date.now()}`,
-    type: 'max_keys_upgrade',
+    id: `shop_max_lives_${Date.now()}`,
+    type: 'max_lives_upgrade',
     price: chassisPrice,
-    title: 'Chassi Mecânico Reforçado',
-    description: 'Aumenta permanentemente o limite máximo em +5 Teclas [T] e restaura +5 Teclas.',
-    iconName: 'Shield',
+    title: 'Expansão de Núcleo (Vida Max +1)',
+    description: 'Aumenta permanentemente o limite máximo em +1 Vida [❤️] e restaura +1 Vida.',
+    iconName: 'ShieldPlus',
     bought: false
   });
 

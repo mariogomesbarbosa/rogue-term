@@ -14,7 +14,8 @@ import {
   Skull,
   DollarSign,
   TrendingUp,
-  Award
+  Award,
+  Heart
 } from 'lucide-react';
 import { KeycapIcon } from './KeycapIcon';
 import { getCardSellValue } from '@/data/skills';
@@ -30,8 +31,8 @@ export const ShopModal: React.FC = () => {
     passives,
     sector,
     stage,
-    keys,
-    maxKeys,
+    lives,
+    maxLives,
     buyShopItem,
     sellSkillCard,
     rerollShop,
@@ -65,7 +66,7 @@ export const ShopModal: React.FC = () => {
                 </span>
               </div>
               <span className="text-xs text-stone-400">
-                Aprimore suas cartas e faça a manutenção das suas Teclas [T]
+                Aprimore seu deck e recupere a integridade das suas Vidas [❤️]
               </span>
             </div>
           </div>
@@ -81,10 +82,10 @@ export const ShopModal: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-800">
-              <KeycapIcon size="sm" label="T" />
+              <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-black text-stone-200">{keys}</span>
-                <span className="text-xs text-stone-500">/{maxKeys}</span>
+                <span className="text-lg font-black text-rose-400">{lives}</span>
+                <span className="text-xs text-stone-500">/{maxLives}</span>
               </div>
             </div>
           </div>
@@ -160,12 +161,12 @@ export const ShopModal: React.FC = () => {
                   borderColor = 'border-cyan-500/50';
                   badgeColor = 'bg-cyan-950 border-cyan-500 text-cyan-300';
                 }
-              } else if (item.type === 'key_refill') {
-                borderColor = 'border-emerald-600/50';
-                badgeColor = 'bg-emerald-950 border-emerald-500 text-emerald-300';
-              } else if (item.type === 'max_keys_upgrade') {
-                borderColor = 'border-teal-600/50';
-                badgeColor = 'bg-teal-950 border-teal-500 text-teal-300';
+              } else if (item.type === 'life_refill' || (item.type as string) === 'key_refill') {
+                borderColor = 'border-rose-600/60 shadow-[0_0_12px_rgba(244,63,94,0.2)]';
+                badgeColor = 'bg-rose-950 border-rose-500 text-rose-300';
+              } else if (item.type === 'max_lives_upgrade' || (item.type as string) === 'max_keys_upgrade') {
+                borderColor = 'border-amber-600/60 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
+                badgeColor = 'bg-amber-950 border-amber-500 text-amber-300';
               }
 
               return (
@@ -182,7 +183,9 @@ export const ShopModal: React.FC = () => {
                           ? isPassive
                             ? 'Passiva'
                             : 'Ativa'
-                          : 'Manutenção'}
+                          : item.type === 'life_refill' || (item.type as string) === 'key_refill'
+                          ? '+1 Vida [❤️]'
+                          : 'Vida Máxima [❤️]'}
                       </span>
 
                       <div className="flex items-center gap-1 text-amber-400 font-black text-sm">

@@ -15,6 +15,7 @@ import { GameOverModal } from '@/components/GameOverModal';
 import { VictoryModal } from '@/components/VictoryModal';
 import { CodexModal } from '@/components/CodexModal';
 import { TutorialModal } from '@/components/TutorialModal';
+import { LifeLostModal } from '@/components/LifeLostModal';
 import { BossAlertBanner } from '@/components/BossAlertBanner';
 import { NotificationToast } from '@/components/NotificationToast';
 
@@ -81,6 +82,7 @@ export default function GamePage() {
       <DraftModal />
       <RoundVictoryModal />
       <ShopModal />
+      <LifeLostModal />
       <GameOverModal />
       <VictoryModal />
       <CodexModal />

@@ -4,18 +4,17 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen, HelpCircle } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen, HelpCircle, Heart } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
-    keys,
-    maxKeys,
+    lives,
+    maxLives,
     score,
     coins,
     round,
     sector,
     stage,
-    currentBoss,
     streak,
     crtEnabled,
     toggleCrt,
@@ -26,7 +25,7 @@ export const Header: React.FC = () => {
     startNewRun
   } = useGameStore();
 
-  const isLowKeys = keys <= 3;
+  const isLowLives = lives <= 1;
 
   return (
     // Visível apenas no Mobile / Telas pequenas. No Desktop, o BalatroSidebar assume essa função.
@@ -61,19 +60,28 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Recurso Vital: Teclas [T] */}
+      {/* Recurso Vital: Vidas [❤️] */}
       <div
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
-          isLowKeys
-            ? 'bg-rose-950/70 border-rose-500 animate-pulse text-rose-300'
-            : 'bg-stone-900 border-amber-500/50 text-amber-300'
+        className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all ${
+          isLowLives
+            ? 'bg-rose-950/80 border-rose-500 animate-pulse text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
+            : 'bg-stone-900 border-rose-500/40 text-rose-400'
         }`}
+        title={`Vidas restantes: ${lives}/${maxLives}`}
       >
-        <span className="text-[10px] text-stone-400">TECLAS:</span>
-        <span className={`font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
-          {keys}
-        </span>
-        <span className="text-[10px] text-stone-500">/{maxKeys}</span>
+        <span className="text-[10px] text-stone-400 font-bold hidden xs:inline">VIDAS:</span>
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: maxLives }).map((_, idx) => (
+            <Heart
+              key={idx}
+              className={`w-3.5 h-3.5 ${
+                idx < lives
+                  ? 'fill-rose-500 text-rose-500 drop-shadow-[0_0_4px_rgba(244,63,94,0.8)]'
+                  : 'text-stone-700'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Créditos ($) */}

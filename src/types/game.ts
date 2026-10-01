@@ -28,11 +28,11 @@ export interface SkillCard {
   rechargeEveryRounds?: number;
 }
 
-export type GamePhase = 'playing' | 'round_won' | 'drafting' | 'shop' | 'game_over' | 'victory';
+export type GamePhase = 'playing' | 'round_won' | 'life_lost' | 'drafting' | 'shop' | 'game_over' | 'victory';
 
 export interface ShopItem {
   id: string;
-  type: 'card' | 'key_refill' | 'max_keys_upgrade';
+  type: 'card' | 'life_refill' | 'max_lives_upgrade' | 'key_refill' | 'max_keys_upgrade';
   price: number;
   card?: SkillCard;
   title: string;

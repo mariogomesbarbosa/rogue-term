@@ -15,7 +15,8 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
-  Skull
+  Skull,
+  Heart
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { KeycapIcon } from './KeycapIcon';
@@ -26,8 +27,8 @@ export const RoundVictoryModal: React.FC = () => {
     targetWord,
     score,
     streak,
-    keys,
-    maxKeys,
+    lives,
+    maxLives,
     sector,
     stage,
     maxSectors,
@@ -283,14 +284,16 @@ export const RoundVictoryModal: React.FC = () => {
 
         {/* Resumo de Recompensas de Hardware & Economia */}
         <div className="grid grid-cols-2 gap-2">
-          {/* Teclas Recuperadas */}
+          {/* Integridade da Run (Vidas) */}
           <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-stone-900/60 border border-stone-800">
-            <KeycapIcon size="sm" label="T" glow />
+            <div className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-500">
+              <Heart className="w-4 h-4 fill-rose-500" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-[9px] text-stone-500 uppercase font-bold">Fôlego Restaurado</span>
+              <span className="text-[9px] text-stone-500 uppercase font-bold">Integridade</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-sm font-black text-stone-100">{keys}</span>
-                <span className="text-[10px] text-stone-500">/{maxKeys} Teclas</span>
+                <span className="text-sm font-black text-rose-400">{lives}</span>
+                <span className="text-[10px] text-stone-500">/{maxLives} Vidas</span>
               </div>
             </div>
           </div>

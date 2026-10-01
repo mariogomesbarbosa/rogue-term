@@ -20,15 +20,19 @@ export const Board: React.FC = () => {
     applySwapLetters,
     applyThermalLens,
     lensHint,
-    currentBoss
+    currentBoss,
+    passives
   } = useGameStore();
 
   // Estado local para seleção do Ctrl+Z e Anagramador
   const [selectedLetterPos, setSelectedLetterPos] = useState<{ row: number; col: number } | null>(null);
   const [replacementChar, setReplacementChar] = useState('');
 
-  // Total de linhas para renderizar (padrão de 6 tentativas, com suporte a mais linhas via scroll)
-  const totalRows = Math.max(6, evaluations.length + (gamePhase === 'playing' ? 1 : 0));
+  // Total de linhas para renderizar (5 no Overvolt/Kernel Panic, 7 com Pasta Térmica, 6 padrão)
+  const isOvervolt = currentBoss?.anomaly.id === 'power_surge' || currentBoss?.anomaly.id === 'kernel_panic';
+  const hasThermalPaste = passives?.some(p => p.id === 'pasta_termica');
+  const maxAllowedGuesses = (isOvervolt ? 5 : 6) + (hasThermalPaste ? 1 : 0);
+  const totalRows = Math.max(maxAllowedGuesses, evaluations.length + (gamePhase === 'playing' ? 1 : 0));
   const rows = Array.from({ length: totalRows });
 
   const getTileClasses = (
@@ -39,11 +43,16 @@ export const Board: React.FC = () => {
     isCurrentRow: boolean,
     isGlitched: boolean = false,
     isLensTargetable: boolean = false,
-    isRecentlyFlipped: boolean = false
+    isRecentlyFlipped: boolean = false,
+    isBurned: boolean = false
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
     const base =
       'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 lg:w-14 lg:h-14 flex items-center justify-center font-mono font-black text-xl sm:text-2xl md:text-3xl rounded-lg select-none uppercase transition-all duration-200 relative ';
+
+    if (isBurned) {
+      return base + 'bg-amber-950/80 border-2 border-amber-500/80 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse';
+    }
 
     if (isGlitched) {
       return base + 'bg-fuchsia-950/80 border-2 border-dashed border-fuchsia-500 text-fuchsia-300 shadow-[0_0_15px_rgba(217,70,239,0.35)] animate-pulse';
@@ -258,6 +267,7 @@ export const Board: React.FC = () => {
                   : `empty-${rowIndex}-${colIndex}`;
 
                 const popClass = isCurrent && char ? ' animate-tile-pop' : '';
+                const isBurned = isEvaluated && evaluations[rowIndex]?.letters[colIndex]?.char === '⚡';
 
                 return (
                   <motion.div
@@ -275,7 +285,8 @@ export const Board: React.FC = () => {
                         isCurrent,
                         isGlitched,
                         isLensTargetable,
-                        isRecentlyFlipped && !isGlitched
+                        isRecentlyFlipped && !isGlitched,
+                        isBurned
                       ) + popClass
                     }
                   >

@@ -16,6 +16,9 @@ interface TargetingState {
 }
 
 interface GameState {
+  lives: number;
+  maxLives: number;
+  bufferDeathPrevented: boolean;
   keys: number;
   maxKeys: number;
   score: number;
@@ -128,7 +131,7 @@ interface RoundWinParams {
   updatedKeyboard: Record<string, TileStatus>;
   updatedSkills?: SkillCard[];
   guessIndex: number;
-  remainingKeys: number;
+  remainingKeys?: number;
   customWinMessage?: string;
 }
 
@@ -139,7 +142,6 @@ function calculateRoundWinState({
   updatedKeyboard,
   updatedSkills,
   guessIndex,
-  remainingKeys,
   customWinMessage
 }: RoundWinParams): Partial<GameState> {
   try {
@@ -149,28 +151,21 @@ function calculateRoundWinState({
   }
   setTimeout(() => sound.playVictoryFanfare(), 850);
 
-  const { targetWord, passives, maxKeys, round, streak, score, activeSkills, sector, stage, maxSectors, endlessMode, currentBoss } = state;
+  const { targetWord, passives, round, streak, score, activeSkills, sector, stage, maxSectors, endlessMode, currentBoss, lives, maxLives } = state;
 
   const isBossFight = stage === 3 && !!currentBoss;
 
-  // Cálculo de Teclas restauradas
-  let keysRestored = 2;
-  if (guessIndex === 1) keysRestored = 6;
-  else if (guessIndex === 2) keysRestored = 5;
-  else if (guessIndex === 3) keysRestored = 4;
-  else if (guessIndex === 4) keysRestored = 3;
-
-  // Bônus épico de Teclas ao derrotar o Chefe!
-  if (isBossFight) {
-    keysRestored += 3;
+  // Ao derrotar Chefe de Setor: recupera +1 Vida!
+  let newLives = lives;
+  let lifeHealedMsg = '';
+  if (isBossFight && lives < maxLives) {
+    newLives = Math.min(maxLives, lives + 1);
+    lifeHealedMsg = ' +1 Vida [❤️] Restaurada!';
   }
 
-  // Passiva: Switch Dourado (Letras raras dão +2 teclas extras)
+  // Passiva: Switch Dourado (Letras raras dão +$3 créditos extras e dobram a pontuação)
   const hasGoldSwitch = passives.some(p => p.id === 'switch_dourado');
   const hasRareLetter = /[XZKWYJ]/.test(normalizeWord(targetWord));
-  if (hasGoldSwitch && hasRareLetter) {
-    keysRestored += 2;
-  }
 
   // Cálculo do Tempo gasto na rodada
   const now = Date.now();
@@ -212,21 +207,24 @@ function calculateRoundWinState({
     timeSkillNotes.push('Cronômetro de Quartzo: Bônus de tempo dobrado e +$2 Créditos!');
   }
 
-  // Passiva: Overclock de Switch (se <= 20s, +0.6x multiplicador e +2 Teclas extras)
+  // Passiva: Overclock de Switch (se <= 20s, +0.8x multiplicador e +$2 créditos extras)
   const hasOverclock = passives.some(p => p.id === 'overclock_switch');
+  let overclockBonusCredits = 0;
   if (hasOverclock && rawDuration <= 20) {
-    timeMultiplierBonus += 0.6;
-    keysRestored += 2;
-    timeSkillNotes.push('Overclock de Switch: +0.6x Multiplicador e +2 Teclas [T] extras!');
+    timeMultiplierBonus += 0.8;
+    overclockBonusCredits = 2;
+    timeSkillNotes.push('Overclock de Switch: +0.8x Multiplicador e +$2 Créditos extras!');
   }
-
-  const newKeys = Math.min(maxKeys, remainingKeys + keysRestored);
 
   // Cálculo de Pontuação (Chefes concedem bônus robusto)
   const basePoints = round * 1000;
   const guessBonus = (6 - Math.min(6, guessIndex)) * 250;
   const bossBonusPoints = isBossFight ? 2500 : 0;
-  const totalBase = basePoints + guessBonus + bossBonusPoints + timeBonus;
+  const totalBase = (basePoints + guessBonus + bossBonusPoints + timeBonus) * (hasGoldSwitch && hasRareLetter ? 2 : 1);
+
+  if (hasGoldSwitch && hasRareLetter) {
+    timeSkillNotes.push('Switch Dourado: Pontuação dobrada e +$3 Créditos por letra rara!');
+  }
 
   let multiplier = 1.0;
   if (guessIndex === 1) multiplier = 4.0;
@@ -249,28 +247,28 @@ function calculateRoundWinState({
     timeSkillNotes.push('Acelerador GPU: +0.5x Multiplicador por resolução rápida (≤3 palpites)');
   }
 
+  // Passiva: Switch Silencioso (vitória sem usar cartas ativas)
+  const hasSilentSwitch = passives.some(p => p.id === 'switch_silencioso');
+  let silentSwitchBonus = 0;
+  if (hasSilentSwitch && !state.usedActiveSkillInRound) {
+    silentSwitchBonus = 5;
+    multiplier += 0.4;
+    timeSkillNotes.push('Switch Silencioso: +$5 Créditos e +0.4x Multiplicador (nenhuma habilidade ativa usada)');
+  }
+
   multiplier = Math.round(multiplier * 100) / 100;
   const roundPoints = Math.round(totalBase * multiplier);
   const newScore = score + roundPoints;
   const newStreak = streak + 1;
 
-  // Passiva: Switch Silencioso (vitória sem usar cartas ativas)
-  const hasSilentSwitch = passives.some(p => p.id === 'switch_silencioso');
-  let silentSwitchBonus = 0;
-  if (hasSilentSwitch && !state.usedActiveSkillInRound) {
-    silentSwitchBonus = 4;
-    keysRestored += 2;
-    timeSkillNotes.push('Switch Silencioso: +$4 e +2 Teclas [T] (Nenhuma habilidade ativa utilizada)');
-  }
-
   // Economia de Créditos ($)
   const baseReward = 3;
   const efficiencyBonus = Math.max(0, 6 - guessIndex);
   const bossBonus = isBossFight ? 5 : 0;
-  const goldSwitchBonus = hasGoldSwitch && hasRareLetter ? 4 : 0;
+  const goldSwitchBonus = hasGoldSwitch && hasRareLetter ? 3 : 0;
   const currentCoins = state.coins ?? 4;
   const interest = Math.min(5, Math.floor(currentCoins / 5));
-  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + timeBonusCredits + interest + silentSwitchBonus;
+  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + timeBonusCredits + interest + silentSwitchBonus + overclockBonusCredits;
   const newCoins = currentCoins + totalCoinsEarned;
 
   const roundEarnings: RoundEarnings = {
@@ -314,9 +312,9 @@ function calculateRoundWinState({
     if (isFinalVictory) {
       winMessage = `🏆 VITÓRIA DO SISTEMA! O Mainframe Central foi derrotado no Setor ${sector}!`;
     } else if (isBossFight) {
-      winMessage = `💥 CHEFE DERROTADO! +${keysRestored} Teclas, +$${totalCoinsEarned} e +${roundPoints} Pontos!`;
+      winMessage = `💥 CHEFE DERROTADO!${lifeHealedMsg} +$${totalCoinsEarned} Créditos e +${roundPoints} Pontos!`;
     } else {
-      winMessage = `Excelente! +${keysRestored} Teclas [T], +$${totalCoinsEarned} e +${roundPoints} Pontos!`;
+      winMessage = `Excelente! Palavra decifrada! +$${totalCoinsEarned} Créditos e +${roundPoints} Pontos!`;
     }
   }
 
@@ -362,7 +360,7 @@ function calculateRoundWinState({
     evaluations: newEvaluations,
     currentGuess: ['', '', '', '', ''],
     activeTileCol: 0,
-    keys: newKeys,
+    lives: newLives,
     score: newScore,
     coins: newCoins,
     streak: newStreak,
@@ -386,6 +384,9 @@ function calculateRoundWinState({
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
+      lives: 2,
+      maxLives: 2,
+      bufferDeathPrevented: false,
       keys: 15,
       maxKeys: 20,
       score: 0,
@@ -470,6 +471,9 @@ export const useGameStore = create<GameState>()(
         const firstWord = getRandomTargetWord();
         set({
           careerStats: updatedCareerStats,
+          lives: 2,
+          maxLives: 2,
+          bufferDeathPrevented: false,
           keys: 15,
           maxKeys: 20,
           score: 0,
@@ -500,7 +504,7 @@ export const useGameStore = create<GameState>()(
           lastRoundDuration: 0,
           lastRoundScoreDetails: null,
           lensHint: null,
-          notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
+          notification: 'Setor 1 iniciado! Você tem 2 Vidas [❤️ ❤️] para sobreviver à run.',
           shakeBoard: false,
           keyboardStatus: {},
           targetingState: null,
@@ -559,7 +563,7 @@ export const useGameStore = create<GameState>()(
       },
 
       buyShopItem: (itemId: string) => {
-        const { shopItems, coins, activeSkills, passives, keys, maxKeys } = get();
+        const { shopItems, coins, activeSkills, passives, lives, maxLives } = get();
         const item = shopItems.find(i => i.id === itemId);
         if (!item || item.bought) return;
 
@@ -606,12 +610,12 @@ export const useGameStore = create<GameState>()(
               setTimeout(() => set({ shakeBoard: false }), 400);
               return;
             }
-            // Efeito imediato: Keycaps PBT Reforçadas (+10 maxKeys, +3 keys)
-            let updatedMaxKeys = maxKeys;
-            let updatedKeys = keys;
+            // Efeito imediato: Keycaps PBT Reforçadas (+1 maxLives, +1 lives)
+            let updatedMaxLives = maxLives;
+            let updatedLives = lives;
             if (card.id === 'keycaps_pbt') {
-              updatedMaxKeys += 10;
-              updatedKeys = Math.min(updatedMaxKeys, keys + 3);
+              updatedMaxLives += 1;
+              updatedLives = Math.min(updatedMaxLives, lives + 1);
             }
 
             sound.playCoinCollect();
@@ -619,31 +623,40 @@ export const useGameStore = create<GameState>()(
               coins: coins - item.price,
               passives: [...passives, card],
               discoveredSkillIds: updatedDiscovered,
-              maxKeys: updatedMaxKeys,
-              keys: updatedKeys,
+              maxLives: updatedMaxLives,
+              lives: updatedLives,
               shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
               notification: `Instalado: [${card.name}] por $${item.price}!`
             });
           }
-        } else if (item.type === 'key_refill') {
+        } else if (item.type === 'life_refill' || (item.type as string) === 'key_refill') {
+          if (lives >= maxLives) {
+            sound.playErrorBuzz();
+            set({
+              notification: 'Suas Vidas já estão no limite máximo!',
+              shakeBoard: true
+            });
+            setTimeout(() => set({ shakeBoard: false }), 400);
+            return;
+          }
           sound.playCoinCollect();
-          const newKeys = Math.min(maxKeys, keys + 3);
+          const newLives = Math.min(maxLives, lives + 1);
           set({
             coins: coins - item.price,
-            keys: newKeys,
+            lives: newLives,
             shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
-            notification: `Manutenção realizada! +3 Teclas [T] restauradas por $${item.price}.`
+            notification: `Integridade restaurada! +1 Vida [❤️] recuperada por $${item.price}.`
           });
-        } else if (item.type === 'max_keys_upgrade') {
+        } else if (item.type === 'max_lives_upgrade' || (item.type as string) === 'max_keys_upgrade') {
           sound.playCoinCollect();
-          const newMax = maxKeys + 5;
-          const newKeys = keys + 5;
+          const newMaxLives = maxLives + 1;
+          const newLives = lives + 1;
           set({
             coins: coins - item.price,
-            maxKeys: newMax,
-            keys: newKeys,
+            maxLives: newMaxLives,
+            lives: newLives,
             shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
-            notification: `Chassi reforçado! Teto de Teclas expandido para ${newMax} por $${item.price}!`
+            notification: `Chassi reforçado! Teto de Vidas expandido para ${newMaxLives} [❤️] por $${item.price}!`
           });
         }
       },
@@ -850,11 +863,13 @@ export const useGameStore = create<GameState>()(
           targetWord,
           guesses,
           evaluations,
-          keys,
           gamePhase,
           keyboardStatus,
           passives,
-          currentBoss
+          currentBoss,
+          lives,
+          maxLives,
+          bufferDeathPrevented
         } = get();
 
         if (gamePhase !== 'playing') return;
@@ -951,9 +966,6 @@ export const useGameStore = create<GameState>()(
 
         // Obter a forma canônica com acentos se houver (ex: ALCAR -> ALÇAR, SAUDE -> SAÚDE)
         const guessWord = getCanonicalWord(rawGuessWord);
-
-        // Checar passiva: Buffer de Teclado (Primeiro palpite grátis se acertar 2+ letras)
-        const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
         let evalStatuses = evaluateGuess(guessWord, targetWord);
 
         // Checar anomalia de Chefe: Ghosting de Switch ou Kernel Panic (letras amarelas viram ausentes)
@@ -967,28 +979,12 @@ export const useGameStore = create<GameState>()(
         });
 
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;
-        const isFreeGuess = hasBuffer && guesses.length === 0 && correctOrPresentCount >= 2;
-
-        // Checar anomalia de Chefe: Sobrecarga de Circuito ou Kernel Panic (consome 2 teclas por palpite incorreto)
-        const isPowerSurge = currentBoss?.anomaly.id === 'power_surge' || currentBoss?.anomaly.id === 'kernel_panic';
-        const baseCost = isPowerSurge ? 2 : 1;
-
-        // Checar anomalia de Chefe: Curto-Circuito (0 acertos em um palpite incorreto queima +2 teclas extras)
         const isWin = normalizeWord(guessWord) === normalizeWord(targetWord);
-        const isShortCircuit = currentBoss?.anomaly.id === 'short_circuit' && correctOrPresentCount === 0 && !isWin;
-        const extraCost = isShortCircuit ? 2 : 0;
 
-        let keysCost = isFreeGuess ? 0 : (baseCost + extraCost);
-
-        // Passiva: Pasta Térmica (reembolsa 1 tecla se errar todas as 5 letras, 1x por rodada)
+        // Limite máximo de palpites: 6 normalmente, 5 no Overvolt/Kernel Panic, +1 de emergência com Pasta Térmica
+        const isOvervolt = currentBoss?.anomaly.id === 'power_surge' || currentBoss?.anomaly.id === 'kernel_panic';
         const hasThermalPaste = passives.some(p => p.id === 'pasta_termica');
-        let usedThermalPasteThisTurn = false;
-        if (hasThermalPaste && !get().usedThermalPasteInRound && correctOrPresentCount === 0 && !isWin && keysCost > 0) {
-          keysCost = Math.max(0, keysCost - 1);
-          usedThermalPasteThisTurn = true;
-        }
-
-        const remainingKeys = keys - keysCost;
+        const maxAllowedGuesses = (isOvervolt ? 5 : 6) + (hasThermalPaste ? 1 : 0);
 
         // Construir linha avaliada
         const evaluatedRow: EvaluatedRow = {
@@ -1002,6 +998,25 @@ export const useGameStore = create<GameState>()(
         const newGuesses = [...guesses, guessWord];
         const newEvaluations = [...evaluations, evaluatedRow];
 
+        // Anomalia de Chefe: Curto-Circuito (0 acertos em um palpite incorreto queima 1 tentativa extra)
+        const isShortCircuit = currentBoss?.anomaly.id === 'short_circuit' && correctOrPresentCount === 0 && !isWin;
+        let burnedExtraRow = false;
+        if (isShortCircuit && newGuesses.length < maxAllowedGuesses) {
+          burnedExtraRow = true;
+          const burnedRow: EvaluatedRow = {
+            letters: [
+              { char: '⚡', status: 'absent' },
+              { char: '⚡', status: 'absent' },
+              { char: '⚡', status: 'absent' },
+              { char: '⚡', status: 'absent' },
+              { char: '⚡', status: 'absent' }
+            ],
+            submittedAt: Date.now()
+          };
+          newGuesses.push('⚡⚡⚡⚡⚡');
+          newEvaluations.push(burnedRow);
+        }
+
         // Atualizar status do teclado
         const updatedKeyboard = updateKeyboardStatus(keyboardStatus, evaluatedRow);
 
@@ -1011,8 +1026,7 @@ export const useGameStore = create<GameState>()(
             newGuesses,
             newEvaluations,
             updatedKeyboard,
-            guessIndex: newGuesses.length,
-            remainingKeys
+            guessIndex: newGuesses.length
           });
           set(winState);
           return;
@@ -1038,46 +1052,62 @@ export const useGameStore = create<GameState>()(
           };
         };
 
-        // Verificar derrota por limite de 6 tentativas preenchidas no grid
-        if (newGuesses.length >= 6) {
-          sound.playGameOver();
-          set({
-            guesses: newGuesses,
-            evaluations: newEvaluations,
-            currentGuess: ['', '', '', '', ''],
-            activeTileCol: 0,
-            keys: remainingKeys,
-            keyboardStatus: updatedKeyboard,
-            gamePhase: 'game_over',
-            careerStats: recordDefeatStats(),
-            notification: `Tentativas esgotadas! A palavra era ${targetWord}.`
-          });
-          return;
+        // Verificar se esgotou as tentativas do terminal
+        if (newGuesses.length >= maxAllowedGuesses) {
+          const hasBuffer = passives.some(p => p.id === 'buffer_teclado');
+
+          // Passiva: Buffer de Sobrecarga (salva da derrota letal 1x por partida quando lives <= 1)
+          if (lives <= 1 && hasBuffer && !bufferDeathPrevented) {
+            sound.playGameOver();
+            set({
+              guesses: newGuesses,
+              evaluations: newEvaluations,
+              currentGuess: ['', '', '', '', ''],
+              activeTileCol: 0,
+              bufferDeathPrevented: true,
+              gamePhase: 'life_lost',
+              streak: 0,
+              keyboardStatus: updatedKeyboard,
+              notification: `🛡️ BUFFER DE SOBRECARGA ATIVADO! A pane fatal foi absorvida! A palavra secreta era ${targetWord}.`
+            });
+            return;
+          }
+
+          const remainingLives = lives - 1;
+
+          if (remainingLives <= 0) {
+            sound.playGameOver();
+            set({
+              guesses: newGuesses,
+              evaluations: newEvaluations,
+              currentGuess: ['', '', '', '', ''],
+              activeTileCol: 0,
+              lives: 0,
+              keyboardStatus: updatedKeyboard,
+              gamePhase: 'game_over',
+              careerStats: recordDefeatStats(),
+              notification: `Tentativas esgotadas e todas as Vidas perdidas! A palavra era ${targetWord}.`
+            });
+            return;
+          } else {
+            sound.playGameOver();
+            set({
+              guesses: newGuesses,
+              evaluations: newEvaluations,
+              currentGuess: ['', '', '', '', ''],
+              activeTileCol: 0,
+              lives: remainingLives,
+              keyboardStatus: updatedKeyboard,
+              gamePhase: 'life_lost',
+              streak: 0,
+              notification: `Tentativas esgotadas! -1 Vida perdida (${remainingLives}/${maxLives} restantes). A palavra era ${targetWord}.`
+            });
+            return;
+          }
         }
 
-        // Verificar derrota por falta de Teclas
-        if (remainingKeys <= 0) {
-          sound.playGameOver();
-          set({
-            guesses: newGuesses,
-            evaluations: newEvaluations,
-            currentGuess: ['', '', '', '', ''],
-            activeTileCol: 0,
-            keys: 0,
-            keyboardStatus: updatedKeyboard,
-            gamePhase: 'game_over',
-            careerStats: recordDefeatStats(),
-            notification: `Suas Teclas acabaram! A palavra era ${targetWord}.`
-          });
-          return;
-        }
-
-        const roundNotification = isShortCircuit
-          ? '⚡ CURTO-CIRCUITO! Nenhuma letra acertada: -2 Teclas extras queimadas!'
-          : usedThermalPasteThisTurn
-          ? '❄️ Pasta Térmica dissipou o calor! 1 Tecla [T] recuperada do erro completo.'
-          : isFreeGuess
-          ? 'Buffer ativado! Tentativa grátis.'
+        const roundNotification = burnedExtraRow
+          ? '⚡ CURTO-CIRCUITO! Nenhuma letra identificada: 1 tentativa extra queimada no grid!'
           : null;
 
         // Continua jogando a rodada
@@ -1086,13 +1116,11 @@ export const useGameStore = create<GameState>()(
           evaluations: newEvaluations,
           currentGuess: ['', '', '', '', ''],
           activeTileCol: 0,
-          keys: remainingKeys,
           keyboardStatus: updatedKeyboard,
-          usedThermalPasteInRound: get().usedThermalPasteInRound || usedThermalPasteThisTurn,
           notification: roundNotification,
-          shakeBoard: isShortCircuit
+          shakeBoard: burnedExtraRow
         });
-        if (isShortCircuit) {
+        if (burnedExtraRow) {
           setTimeout(() => set({ shakeBoard: false }), 500);
         }
       },
@@ -1158,17 +1186,15 @@ export const useGameStore = create<GameState>()(
           sound.playSkillActivate();
           const newEvals = evaluations.slice(0, -1);
           const newGuesses = guesses.slice(0, -1);
-          const refundedKeys = Math.min(maxKeys, keys + 1);
 
           const updatedSkills = consumeSkillCharge(activeSkills, skillId);
 
           set({
             evaluations: newEvals,
             guesses: newGuesses,
-            keys: refundedKeys,
             activeSkills: updatedSkills,
             usedActiveSkillInRound: true,
-            notification: 'Backspace Quântico ativado! Última linha apagada e 1 Tecla [T] recuperada.'
+            notification: 'Backspace Quântico ativado! Última linha de tentativa apagada do terminal.'
           });
           return;
         }
@@ -1612,7 +1638,7 @@ export const useGameStore = create<GameState>()(
       },
 
       chooseDraftCard: (card: SkillCard) => {
-        const { activeSkills, passives, maxKeys, keys, discoveredSkillIds } = get();
+        const { activeSkills, passives, lives, maxLives, discoveredSkillIds } = get();
         const currentDiscovered = discoveredSkillIds || ['ctrl_z', 'sonda_circuito'];
         const updatedDiscovered = Array.from(new Set([...currentDiscovered, card.id]));
 
@@ -1623,16 +1649,16 @@ export const useGameStore = create<GameState>()(
         } else {
           // Passiva
           const updated = [...passives, card];
-          let updatedMax = maxKeys;
-          let updatedKeys = keys;
+          let updatedMaxLives = maxLives;
+          let updatedLives = lives;
 
-          // Se for Keycaps PBT: +10 no teto e +4 teclas imediatas
+          // Se for Keycaps PBT: +1 Vida Máxima e +1 Vida imediata
           if (card.id === 'keycaps_pbt') {
-            updatedMax += 10;
-            updatedKeys += 4;
+            updatedMaxLives += 1;
+            updatedLives = Math.min(updatedMaxLives, lives + 1);
           }
 
-          set({ passives: updated, maxKeys: updatedMax, keys: updatedKeys, discoveredSkillIds: updatedDiscovered });
+          set({ passives: updated, maxLives: updatedMaxLives, lives: updatedLives, discoveredSkillIds: updatedDiscovered });
         }
 
         get().startNextRound();
@@ -1654,6 +1680,9 @@ export const useGameStore = create<GameState>()(
       name: 'rogue-term-storage',
       version: 1,
       partialize: state => ({
+        lives: state.lives ?? 2,
+        maxLives: state.maxLives ?? 2,
+        bufferDeathPrevented: state.bufferDeathPrevented ?? false,
         keys: state.keys,
         maxKeys: state.maxKeys,
         score: state.score,

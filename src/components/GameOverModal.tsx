@@ -6,15 +6,12 @@ import { RotateCcw, Skull, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const GameOverModal: React.FC = () => {
-  const { gamePhase, targetWord, round, score, streak, keys, startNewRun, openCodex } = useGameStore();
+  const { gamePhase, targetWord, round, score, streak, startNewRun, openCodex } = useGameStore();
 
   if (gamePhase !== 'game_over') return null;
 
-  const isOutOfKeys = keys <= 0;
-  const title = isOutOfKeys ? 'TECLAS ESGOTADAS' : 'TENTATIVAS ESGOTADAS';
-  const subtitle = isOutOfKeys
-    ? 'Suas Teclas [T] acabaram antes de decifrar o código.'
-    : 'Você preencheu todas as 6 linhas do grid sem acertar a palavra.';
+  const title = 'SISTEMA COLAPSADO';
+  const subtitle = 'Suas Vidas se esgotaram. A memória volátil do terminal foi descarregada.';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
@@ -77,7 +74,7 @@ export const GameOverModal: React.FC = () => {
           className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-stone-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(225,29,72,0.4)] transition-all active:scale-95 mt-2"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>Tentar Novamente (15 Teclas)</span>
+          <span>Tentar Novamente (2 Vidas)</span>
         </button>
 
         <button

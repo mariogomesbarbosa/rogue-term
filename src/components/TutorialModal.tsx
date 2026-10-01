@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   MousePointerClick,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Heart
 } from 'lucide-react';
 import { KeycapIcon } from './KeycapIcon';
 
@@ -113,7 +114,7 @@ export const TutorialModal: React.FC = () => {
           {/* Indicador de Passos */}
           <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             {[
-              { label: '1. Teclas [T]', icon: Zap },
+              { label: '1. Vidas [❤️]', icon: Heart },
               { label: '2. Cores & Grid', icon: Sparkles },
               { label: '3. Cartas & Loja', icon: Coins },
               { label: '4. Chefes', icon: Skull }
@@ -144,7 +145,7 @@ export const TutorialModal: React.FC = () => {
 
           {/* Conteúdo Dinâmico do Slide */}
           <div className="min-h-[260px] sm:min-h-[280px] flex flex-col justify-center bg-stone-900/40 rounded-xl p-3 sm:p-5 border border-stone-800/80">
-            {/* ETAPA 1: O FÔLEGO DAS TECLAS [T] */}
+            {/* ETAPA 1: O FÔLEGO DAS VIDAS [❤️] */}
             {currentStep === 0 && (
               <motion.div
                 initial={{ opacity: 0, x: 10 }}
@@ -152,33 +153,35 @@ export const TutorialModal: React.FC = () => {
                 className="flex flex-col gap-3.5"
               >
                 <div className="flex items-center gap-3">
-                  <KeycapIcon size="lg" label="T" glow />
+                  <div className="p-2.5 rounded-xl bg-rose-950/80 border-2 border-rose-500 text-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)]">
+                    <Heart className="w-6 h-6 fill-rose-500" />
+                  </div>
                   <div className="flex flex-col">
-                    <h3 className="text-base font-black text-amber-400 uppercase tracking-wide">
-                      Suas Teclas [T] São o Seu Fôlego Vital
+                    <h3 className="text-base font-black text-rose-400 uppercase tracking-wide">
+                      Suas Vidas [❤️] São a Sua Integridade Vital
                     </h3>
                     <p className="text-xs text-stone-300 leading-relaxed">
-                      Diferente de jogos diários de palavras, no <span className="text-amber-300 font-bold">Rogue Term</span> seus palpites não são gratuitos.
+                      Você começa cada partida com <span className="text-rose-400 font-bold">2 Vidas</span>. Se errar uma palavra, o sistema não é destruído de imediato!
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div className="p-2.5 rounded-lg bg-black/40 border border-stone-800 flex flex-col gap-1">
-                    <span className="font-bold text-rose-400 flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5" /> Consumo por Tentativa
+                    <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> 6 Tentativas por Palavra
                     </span>
                     <p className="text-[11px] text-stone-400 leading-snug">
-                      Cada palavra enviada consome <strong className="text-stone-200">1 Tecla [T]</strong> (ou mais durante sobrecargas de Chefes). Se chegar a <strong className="text-rose-400">0</strong>, o hardware queima e é Fim de Jogo!
+                      Você tem 6 linhas de palpite padrão. Se esgotar todas as tentativas sem acertar a palavra, você perde <strong className="text-rose-400">1 Vida [❤️]</strong>.
                     </p>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-black/40 border border-stone-800 flex flex-col gap-1">
                     <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" /> Restauração por Acerto
+                      <Shield className="w-3.5 h-3.5" /> Sobrevivência Roguelike
                     </span>
                     <p className="text-[11px] text-stone-400 leading-snug">
-                      Resolver no 1º palpite restaura <strong className="text-emerald-300">+6 Teclas</strong>, no 2º restaura <strong className="text-emerald-300">+5</strong>, no 3º <strong className="text-emerald-300">+4</strong> e no 4º <strong className="text-emerald-300">+3</strong>.
+                      Enquanto tiver pelo menos 1 Vida restante, a run continua na próxima rodada! Derrotar Chefes de Setor restaura <strong className="text-emerald-300">+1 Vida</strong>.
                     </p>
                   </div>
                 </div>
@@ -186,7 +189,7 @@ export const TutorialModal: React.FC = () => {
                 <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-[11px] text-amber-200">
                   <Shield className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
-                    <strong>Estratégia:</strong> Economize teclas jogando de forma precisa. Na Loja, você poderá comprar Kits de Lubrificante e expansões de chassi.
+                    <strong>Estratégia:</strong> Na Loja você poderá restaurar integridade (+1 Vida) e comprar upgrades permanentes para expandir suas Vidas Máximas!
                   </span>
                 </div>
               </motion.div>
@@ -298,7 +301,7 @@ export const TutorialModal: React.FC = () => {
                 <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-[11px] text-amber-200">
                   <Coins className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
-                    <strong>O Mercado do Setor:</strong> Entre fases, gaste seus créditos em novas cartas, kits de manutenção de teclas e rerolls de prateleira.
+                    <strong>O Mercado do Setor:</strong> Entre fases, gaste seus créditos em novas cartas, cura de Vidas e rerolls de prateleira.
                   </span>
                 </div>
               </motion.div>
@@ -328,7 +331,7 @@ export const TutorialModal: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div className="p-2 rounded-lg bg-black/40 border border-stone-800">
                     <strong className="text-rose-400 block mb-0.5">⚡ Sobrecarga (OVERVOLT)</strong>
-                    <span className="text-stone-400">Cada palpite incorreto consome 2 Teclas [T] em vez de 1.</span>
+                    <span className="text-stone-400">Limite de segurança cai para 5 tentativas no combate (em vez de 6).</span>
                   </div>
                   <div className="p-2 rounded-lg bg-black/40 border border-stone-800">
                     <strong className="text-amber-400 block mb-0.5">🔒 Protocolo Estrito (HARD-CORE)</strong>
@@ -347,7 +350,7 @@ export const TutorialModal: React.FC = () => {
                 <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex items-center gap-2 text-[11px] text-emerald-300">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>
-                    <strong>Recompensa de Chefe:</strong> Vencer concede bônus massivo de pontos, créditos extras e +3 Teclas [T] imediatas para o próximo Setor!
+                    <strong>Recompensa de Chefe:</strong> Vencer concede bônus massivo de pontos, créditos extras e +1 Vida [❤️] restaurada imediatamente!
                   </span>
                 </div>
               </motion.div>

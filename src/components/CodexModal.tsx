@@ -100,8 +100,8 @@ export const CodexModal: React.FC = () => {
       name: 'OVERVOLT.HEX',
       sector: 'Setor 1-2',
       tagline: 'Sobrecarga de Circuito',
-      description: 'Picos de tensão na placa-mãe. Cada palpite incorreto drena 2 Teclas [T] ao invés de 1.',
-      tactic: 'Pense bem antes de cada tentativa. Priorize palavras com alto número de vogais para minimizar chutes errados.',
+      description: 'Sobrecarga elétrica no terminal. O limite seguro cai para 5 tentativas no combate (em vez das 6 habituais).',
+      tactic: 'Pense bem antes de cada tentativa. Você tem 1 chance a menos para decifrar a palavra!',
       color: 'border-amber-500 text-amber-400'
     },
     {
@@ -140,7 +140,7 @@ export const CodexModal: React.FC = () => {
       name: 'SHORT-CIRCUIT.ERR',
       sector: 'Setor 6-7',
       tagline: 'Curto-Circuito Crítico',
-      description: 'Descarga de alta voltagem. Se um palpite tiver 0 acertos (todas as 5 letras cinzas), uma sobrecarga queima +2 Teclas extras!',
+      description: 'Descarga de alta voltagem. Se um palpite tiver 0 acertos (todas as 5 letras cinzas), queima 1 tentativa extra imediatamente!',
       tactic: 'Garanta pelo menos 1 letra comum (como A, E, O, S, R) em cada tentativa para evitar o curto-circuito.',
       color: 'border-red-500 text-red-400'
     },
@@ -148,8 +148,8 @@ export const CodexModal: React.FC = () => {
       name: 'KERNEL-PANIC // NÚCLEO',
       sector: 'Setor 8 (Chefe Final)',
       tagline: 'Defesa Total do Mainframe Central',
-      description: 'Combinação das defesas mais letais do sistema: Ghosting de Switch (sem amarelas) + Sobrecarga de Circuito (2 Teclas por erro)!',
-      tactic: 'Utilize toda a sua economia acumulada e relíquias de Teclas máximas para suportar o desgaste extremo do Núcleo.',
+      description: 'Combinação das defesas mais letais do sistema: Ghosting de Switch (sem amarelas) + Limite restrito a 5 tentativas!',
+      tactic: 'Utilize toda a sua economia acumulada e upgrades de Vidas máximas para suportar o confronto com o Núcleo.',
       color: 'border-rose-600 text-rose-300 font-black'
     }
   ];

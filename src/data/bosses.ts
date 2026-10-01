@@ -16,8 +16,8 @@ export const BOSS_TEMPLATES: BossTemplate[] = [
     name: 'OVERVOLT.HEX',
     title: 'Sobrecarga de Circuito',
     anomalyId: 'power_surge',
-    tagline: 'Dreno Crítico de Energia',
-    description: 'Sobrecarga elétrica! Cada palpite incorreto consome 2 Teclas [T] em vez de 1.',
+    tagline: 'Limite de Operação Restrito',
+    description: 'Sobrecarga elétrica! O limite seguro do terminal cai para 5 tentativas (em vez de 6).',
     iconName: 'Zap'
   },
   {
@@ -62,7 +62,7 @@ export const BOSS_TEMPLATES: BossTemplate[] = [
     title: 'Curto-Circuito Crítico',
     anomalyId: 'short_circuit',
     tagline: 'Descarga por Erro Total',
-    description: 'Se um palpite tiver 0 acertos (todas as 5 letras ausentes), queima +2 Teclas [T] extras!',
+    description: 'Curto-circuito crítico! Se um palpite tiver 0 acertos (todas as 5 letras ausentes), queima 1 tentativa extra!',
     iconName: 'Flame'
   }
 ];
@@ -78,7 +78,7 @@ export function generateBossForSector(sector: number, _targetWord: string): Boss
         id: 'kernel_panic',
         name: 'Colapso do Sistema',
         tagline: 'Defesa Máxima do Mainframe',
-        description: 'Ghosting (sem letras amarelas) E cada palpite incorreto consome 2 Teclas [T]!',
+        description: 'Ghosting (sem letras amarelas) E limite seguro restrito a 5 tentativas!',
         iconName: 'Cpu'
       }
     };

@@ -4,12 +4,12 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen, HelpCircle } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen, HelpCircle, Heart } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
-    keys,
-    maxKeys,
+    lives,
+    maxLives,
     score,
     coins,
     round,
@@ -28,7 +28,7 @@ export const BalatroSidebar: React.FC = () => {
     startNewRun
   } = useGameStore();
 
-  const isLowKeys = keys <= 3;
+  const isLowLives = lives <= 1;
 
   return (
     <aside className="hidden md:flex w-64 lg:w-72 h-full bg-stone-950/90 border-r border-stone-800/80 p-4 flex-col justify-between select-none shadow-[4px_0_24px_rgba(0,0,0,0.5)] z-20 font-mono">
@@ -118,26 +118,37 @@ export const BalatroSidebar: React.FC = () => {
         {/* Cronômetro da Rodada (Fator Tempo & Ritmo) */}
         <RoundTimer />
 
-        {/* Painel Duplo: Teclas [T] & Créditos ($) */}
+        {/* Painel Duplo: Vidas [❤️] & Créditos ($) */}
         <div className="grid grid-cols-2 gap-2">
-          {/* Painel de Teclas [T] */}
+          {/* Painel de Vidas [❤️] */}
           <div
             className={`rounded-xl border p-2.5 flex flex-col justify-between transition-all ${
-              isLowKeys
+              isLowLives
                 ? 'bg-rose-950/70 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)] animate-pulse'
-                : 'bg-stone-900/90 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                : 'bg-stone-900/90 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[9px] uppercase font-bold text-stone-400">Teclas [T]</span>
-              {isLowKeys && <ShieldAlert className="w-3 h-3 text-rose-400" />}
+              <span className="text-[9px] uppercase font-bold text-stone-400">Vidas [❤️]</span>
+              {isLowLives ? (
+                <ShieldAlert className="w-3 h-3 text-rose-400" />
+              ) : (
+                <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
+              )}
             </div>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className={`text-2xl font-black ${isLowKeys ? 'text-rose-400' : 'text-amber-400'}`}>
-                {keys}
-              </span>
-              <span className="text-[10px] text-stone-500 font-bold">/{maxKeys}</span>
+            <div className="flex items-center gap-1.5 mt-2">
+              {Array.from({ length: maxLives }).map((_, idx) => (
+                <Heart
+                  key={idx}
+                  className={`w-5 h-5 ${
+                    idx < lives
+                      ? 'fill-rose-500 text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]'
+                      : 'text-stone-700'
+                  }`}
+                />
+              ))}
             </div>
+            <span className="text-[9px] text-stone-500 mt-1 font-bold">{lives}/{maxLives} Restantes</span>
           </div>
 
           {/* Painel de Créditos ($) */}
