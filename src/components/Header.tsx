@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen, HelpCircle } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -22,6 +22,7 @@ export const Header: React.FC = () => {
     soundEnabled,
     toggleSound,
     openCodex,
+    openTutorial,
     startNewRun
   } = useGameStore();
 
@@ -94,8 +95,16 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Ações (Compêndio, Som, CRT & Novo Jogo) */}
+      {/* Ações (Manual, Compêndio, Som, CRT & Novo Jogo) */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={openTutorial}
+          className="p-1.5 rounded border border-stone-800 bg-stone-900 text-stone-300 hover:border-amber-500/50 hover:text-amber-400 hover:bg-stone-800 transition-colors"
+          title="Manual do Operador (Como Jogar)"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={openCodex}
           className="p-1.5 rounded border border-stone-800 bg-stone-900 text-amber-400 hover:border-amber-500/50 hover:bg-stone-800 transition-colors"

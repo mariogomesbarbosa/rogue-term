@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen, HelpCircle } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
@@ -24,6 +24,7 @@ export const BalatroSidebar: React.FC = () => {
     soundEnabled,
     toggleSound,
     openCodex,
+    openTutorial,
     startNewRun
   } = useGameStore();
 
@@ -183,8 +184,16 @@ export const BalatroSidebar: React.FC = () => {
       {/* Base: Controles e Atalhos */}
       <div className="flex flex-col gap-2 pt-2 border-t border-stone-800/80">
         <button
+          onClick={openTutorial}
+          className="w-full py-2 px-3 rounded-lg border border-stone-800 bg-stone-900/90 hover:bg-stone-800 hover:border-amber-500/40 text-stone-300 hover:text-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <HelpCircle className="w-4 h-4 text-amber-400" />
+          <span>Manual / Como Jogar</span>
+        </button>
+
+        <button
           onClick={openCodex}
-          className="w-full py-2 px-3 rounded-lg border border-amber-500/40 bg-amber-950/20 hover:bg-amber-950/40 text-amber-300 hover:border-amber-400 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+          className="w-full py-2 px-3 rounded-lg border border-amber-500/40 bg-amber-950/20 hover:bg-amber-950/40 text-amber-300 hover:border-amber-400 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] cursor-pointer"
         >
           <BookOpen className="w-4 h-4 text-amber-400" />
           <span>Compêndio & Stats</span>

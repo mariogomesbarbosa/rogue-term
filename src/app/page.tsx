@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useSyncExternalStore } from 'react';
+import React, { useSyncExternalStore, useEffect } from 'react';
+import { useGameStore } from '@/store/gameStore';
 import { Header } from '@/components/Header';
 import { BalatroSidebar } from '@/components/BalatroSidebar';
 import { Board } from '@/components/Board';
@@ -13,6 +14,7 @@ import { RoundVictoryModal } from '@/components/RoundVictoryModal';
 import { GameOverModal } from '@/components/GameOverModal';
 import { VictoryModal } from '@/components/VictoryModal';
 import { CodexModal } from '@/components/CodexModal';
+import { TutorialModal } from '@/components/TutorialModal';
 import { BossAlertBanner } from '@/components/BossAlertBanner';
 import { NotificationToast } from '@/components/NotificationToast';
 
@@ -24,6 +26,14 @@ export default function GamePage() {
     () => true,
     () => false
   );
+
+  const { hasSeenTutorial, openTutorial } = useGameStore();
+
+  useEffect(() => {
+    if (mounted && !hasSeenTutorial) {
+      openTutorial();
+    }
+  }, [mounted, hasSeenTutorial, openTutorial]);
 
   if (!mounted) {
     return (
@@ -74,6 +84,7 @@ export default function GamePage() {
       <GameOverModal />
       <VictoryModal />
       <CodexModal />
+      <TutorialModal />
     </div>
   );
 }

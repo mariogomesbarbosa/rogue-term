@@ -46,6 +46,7 @@ export interface RoundEarnings {
   efficiencyBonus: number;
   bossBonus: number;
   goldSwitchBonus: number;
+  silentSwitchBonus?: number;
   timeBonusCredits?: number;
   interest: number;
   total: number;

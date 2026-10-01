@@ -49,6 +49,8 @@ interface GameState {
   shakeBoard: boolean;
   keyboardStatus: Record<string, TileStatus>;
   targetingState: TargetingState | null;
+  usedActiveSkillInRound: boolean;
+  usedThermalPasteInRound: boolean;
 
   // Carreira e Compêndio (Codex)
   careerStats: CareerStats;
@@ -56,6 +58,13 @@ interface GameState {
   isCodexOpen: boolean;
   openCodex: () => void;
   closeCodex: () => void;
+
+  // Manual & Tutorial
+  isTutorialOpen: boolean;
+  hasSeenTutorial: boolean;
+  openTutorial: () => void;
+  closeTutorial: () => void;
+  setHasSeenTutorial: (seen: boolean) => void;
 
   // Ações
   startNewRun: () => void;
@@ -233,10 +242,26 @@ function calculateRoundWinState({
     multiplier += (streak + 1) * 0.3;
   }
 
+  // Passiva: Acelerador de Clock (GPU) (≤ 3 palpites)
+  const hasGpu = passives.some(p => p.id === 'overclock_gpu');
+  if (hasGpu && guessIndex <= 3) {
+    multiplier += 0.5;
+    timeSkillNotes.push('Acelerador GPU: +0.5x Multiplicador por resolução rápida (≤3 palpites)');
+  }
+
   multiplier = Math.round(multiplier * 100) / 100;
   const roundPoints = Math.round(totalBase * multiplier);
   const newScore = score + roundPoints;
   const newStreak = streak + 1;
+
+  // Passiva: Switch Silencioso (vitória sem usar cartas ativas)
+  const hasSilentSwitch = passives.some(p => p.id === 'switch_silencioso');
+  let silentSwitchBonus = 0;
+  if (hasSilentSwitch && !state.usedActiveSkillInRound) {
+    silentSwitchBonus = 4;
+    keysRestored += 2;
+    timeSkillNotes.push('Switch Silencioso: +$4 e +2 Teclas [T] (Nenhuma habilidade ativa utilizada)');
+  }
 
   // Economia de Créditos ($)
   const baseReward = 3;
@@ -245,7 +270,7 @@ function calculateRoundWinState({
   const goldSwitchBonus = hasGoldSwitch && hasRareLetter ? 4 : 0;
   const currentCoins = state.coins ?? 4;
   const interest = Math.min(5, Math.floor(currentCoins / 5));
-  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + timeBonusCredits + interest;
+  const totalCoinsEarned = baseReward + efficiencyBonus + bossBonus + goldSwitchBonus + timeBonusCredits + interest + silentSwitchBonus;
   const newCoins = currentCoins + totalCoinsEarned;
 
   const roundEarnings: RoundEarnings = {
@@ -253,6 +278,7 @@ function calculateRoundWinState({
     efficiencyBonus,
     bossBonus,
     goldSwitchBonus,
+    silentSwitchBonus,
     timeBonusCredits,
     interest,
     total: totalCoinsEarned
@@ -276,7 +302,8 @@ function calculateRoundWinState({
     ...currentSkills.map(s => s.id),
     ...passives.map(s => s.id)
   ];
-  const newShopItems = generateShopItems(existingIds, sector);
+  const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
+  const newShopItems = generateShopItems(existingIds, sector, hasCompiler);
 
   // Agora vamos sempre para 'round_won' para mostrar a tela de vitória com a palavra, tempo e pontos!
   const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
@@ -341,12 +368,14 @@ function calculateRoundWinState({
     streak: newStreak,
     keyboardStatus: updatedKeyboard,
     shopItems: newShopItems,
-    rerollCost: 2,
+    rerollCost: hasCompiler ? 0 : 2,
     lastRoundEarnings: roundEarnings,
     lastRoundDuration: rawDuration,
     lastRoundScoreDetails: scoreDetails,
     gamePhase: nextGamePhase,
     targetingState: null,
+    usedActiveSkillInRound: false,
+    usedThermalPasteInRound: false,
     careerStats: updatedCareerStats,
     discoveredSkillIds: updatedDiscovered,
     ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
@@ -394,6 +423,8 @@ export const useGameStore = create<GameState>()(
       shakeBoard: false,
       keyboardStatus: {},
       targetingState: null,
+      usedActiveSkillInRound: false,
+      usedThermalPasteInRound: false,
 
       careerStats: {
         gamesPlayed: 0,
@@ -410,6 +441,12 @@ export const useGameStore = create<GameState>()(
       isCodexOpen: false,
       openCodex: () => set({ isCodexOpen: true }),
       closeCodex: () => set({ isCodexOpen: false }),
+
+      isTutorialOpen: false,
+      hasSeenTutorial: false,
+      openTutorial: () => set({ isTutorialOpen: true }),
+      closeTutorial: () => set({ isTutorialOpen: false }),
+      setHasSeenTutorial: (seen: boolean) => set({ hasSeenTutorial: seen }),
 
       startNewRun: () => {
         const { careerStats, guesses } = get();
@@ -466,7 +503,9 @@ export const useGameStore = create<GameState>()(
           notification: 'Setor 1 iniciado! Suas Teclas [T] são o seu fôlego.',
           shakeBoard: false,
           keyboardStatus: {},
-          targetingState: null
+          targetingState: null,
+          usedActiveSkillInRound: false,
+          usedThermalPasteInRound: false
         });
       },
 
@@ -489,7 +528,8 @@ export const useGameStore = create<GameState>()(
           ...activeSkills.map(s => s.id),
           ...passives.map(s => s.id)
         ];
-        const newShopItems = generateShopItems(existingIds, nextSector);
+        const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
+        const newShopItems = generateShopItems(existingIds, nextSector, hasCompiler);
 
         set({
           endlessMode: true,
@@ -505,13 +545,15 @@ export const useGameStore = create<GameState>()(
           gamePhase: 'shop',
           draftChoices: [],
           shopItems: newShopItems,
-          rerollCost: 2,
+          rerollCost: hasCompiler ? 0 : 2,
           roundStartTime: Date.now(),
           lastRoundDuration: 0,
           lastRoundScoreDetails: null,
           lensHint: null,
           keyboardStatus: {},
           targetingState: null,
+          usedActiveSkillInRound: false,
+          usedThermalPasteInRound: false,
           notification: `MODO INFINITO! Bem-vindo ao Mercado do Setor ${nextSector}!`
         });
       },
@@ -533,6 +575,9 @@ export const useGameStore = create<GameState>()(
 
         if (item.type === 'card' && item.card) {
           const card = item.card;
+          const currentDiscovered = get().discoveredSkillIds || ['ctrl_z', 'sonda_circuito'];
+          const updatedDiscovered = Array.from(new Set([...currentDiscovered, card.id]));
+
           if (card.type === 'active') {
             if (activeSkills.length >= 3) {
               sound.playErrorBuzz();
@@ -547,6 +592,7 @@ export const useGameStore = create<GameState>()(
             set({
               coins: coins - item.price,
               activeSkills: [...activeSkills, card],
+              discoveredSkillIds: updatedDiscovered,
               shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
               notification: `Adquirido: [${card.name}] por $${item.price}!`
             });
@@ -572,6 +618,7 @@ export const useGameStore = create<GameState>()(
             set({
               coins: coins - item.price,
               passives: [...passives, card],
+              discoveredSkillIds: updatedDiscovered,
               maxKeys: updatedMaxKeys,
               keys: updatedKeys,
               shopItems: shopItems.map(i => (i.id === itemId ? { ...i, bought: true } : i)),
@@ -643,7 +690,8 @@ export const useGameStore = create<GameState>()(
           ...activeSkills.map(s => s.id),
           ...passives.map(s => s.id)
         ];
-        const newItems = generateShopItems(existingIds, sector);
+        const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
+        const newItems = generateShopItems(existingIds, sector, hasCompiler);
 
         set({
           coins: coins - rerollCost,
@@ -714,6 +762,8 @@ export const useGameStore = create<GameState>()(
           keyboardStatus: newKeyboardStatus,
           targetingState: null,
           lensHint: null,
+          usedActiveSkillInRound: false,
+          usedThermalPasteInRound: false,
           notification: notificationMsg
         });
       },
@@ -928,7 +978,16 @@ export const useGameStore = create<GameState>()(
         const isShortCircuit = currentBoss?.anomaly.id === 'short_circuit' && correctOrPresentCount === 0 && !isWin;
         const extraCost = isShortCircuit ? 2 : 0;
 
-        const keysCost = isFreeGuess ? 0 : (baseCost + extraCost);
+        let keysCost = isFreeGuess ? 0 : (baseCost + extraCost);
+
+        // Passiva: Pasta Térmica (reembolsa 1 tecla se errar todas as 5 letras, 1x por rodada)
+        const hasThermalPaste = passives.some(p => p.id === 'pasta_termica');
+        let usedThermalPasteThisTurn = false;
+        if (hasThermalPaste && !get().usedThermalPasteInRound && correctOrPresentCount === 0 && !isWin && keysCost > 0) {
+          keysCost = Math.max(0, keysCost - 1);
+          usedThermalPasteThisTurn = true;
+        }
+
         const remainingKeys = keys - keysCost;
 
         // Construir linha avaliada
@@ -1015,6 +1074,8 @@ export const useGameStore = create<GameState>()(
 
         const roundNotification = isShortCircuit
           ? '⚡ CURTO-CIRCUITO! Nenhuma letra acertada: -2 Teclas extras queimadas!'
+          : usedThermalPasteThisTurn
+          ? '❄️ Pasta Térmica dissipou o calor! 1 Tecla [T] recuperada do erro completo.'
           : isFreeGuess
           ? 'Buffer ativado! Tentativa grátis.'
           : null;
@@ -1027,6 +1088,7 @@ export const useGameStore = create<GameState>()(
           activeTileCol: 0,
           keys: remainingKeys,
           keyboardStatus: updatedKeyboard,
+          usedThermalPasteInRound: get().usedThermalPasteInRound || usedThermalPasteThisTurn,
           notification: roundNotification,
           shakeBoard: isShortCircuit
         });
@@ -1105,6 +1167,7 @@ export const useGameStore = create<GameState>()(
             guesses: newGuesses,
             keys: refundedKeys,
             activeSkills: updatedSkills,
+            usedActiveSkillInRound: true,
             notification: 'Backspace Quântico ativado! Última linha apagada e 1 Tecla [T] recuperada.'
           });
           return;
@@ -1143,6 +1206,7 @@ export const useGameStore = create<GameState>()(
           set({
             activeSkills: updatedSkills,
             keyboardStatus: { ...keyboardStatus, [revealed]: 'correct' },
+            usedActiveSkillInRound: true,
             notification: `Keycap Iluminado! A vogal '${revealed}' brilha em Verde!`
           });
           return;
@@ -1176,7 +1240,64 @@ export const useGameStore = create<GameState>()(
           set({
             roundStartTime: Date.now(),
             activeSkills: updatedSkills,
+            usedActiveSkillInRound: true,
             notification: '❄️ Buffer Congelado ativado! Cronômetro reiniciado para 0s — bônus de velocidade máxima garantido!'
+          });
+          return;
+        }
+
+        // --- Log de Depuração (Scanner) ---
+        if (skillId === 'debug_log') {
+          sound.playSkillActivate();
+          const normTarget = normalizeWord(targetWord);
+          const vowels = ['A', 'E', 'I', 'O', 'U'];
+          const firstChar = normTarget[0];
+          const lastChar = normTarget[normTarget.length - 1];
+          const firstIsVowel = vowels.includes(firstChar);
+          const lastIsVowel = vowels.includes(lastChar);
+          const charSet = new Set(normTarget.split(''));
+          const hasDuplicates = charSet.size < normTarget.length;
+
+          const firstDesc = firstIsVowel ? 'VOGAL' : 'CONSOANTE';
+          const lastDesc = lastIsVowel ? 'VOGAL' : 'CONSOANTE';
+          const dupDesc = hasDuplicates ? 'COM letras repetidas' : 'SEM letras repetidas';
+
+          const updatedSkills = consumeSkillCharge(activeSkills, skillId);
+          set({
+            usedActiveSkillInRound: true,
+            activeSkills: updatedSkills,
+            notification: `📊 Log de Depuração: Início é [${firstDesc}], fim é [${lastDesc}] e a palavra é ${dupDesc}!`
+          });
+          return;
+        }
+
+        // --- Injeção de Código (Dump de Memória) ---
+        if (skillId === 'injecao_codigo') {
+          const normTarget = normalizeWord(targetWord);
+          const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+          const absentCandidates = alphabet.filter(char =>
+            !normTarget.includes(char) && keyboardStatus[char] !== 'absent' && keyboardStatus[char] !== 'correct'
+          );
+
+          if (absentCandidates.length === 0) {
+            sound.playErrorBuzz();
+            set({ notification: 'Todas as letras inexistentes já foram identificadas no teclado!' });
+            return;
+          }
+
+          sound.playSkillActivate();
+          const toEliminate = [...absentCandidates].sort(() => Math.random() - 0.5).slice(0, 5);
+          const newKeyboard = { ...keyboardStatus };
+          toEliminate.forEach(char => {
+            newKeyboard[char] = 'absent';
+          });
+
+          const updatedSkills = consumeSkillCharge(activeSkills, skillId);
+          set({
+            usedActiveSkillInRound: true,
+            activeSkills: updatedSkills,
+            keyboardStatus: newKeyboard,
+            notification: `💻 Injeção de Código: 5 letras descartadas do teclado: [${toEliminate.join(', ')}]!`
           });
           return;
         }
@@ -1271,6 +1392,7 @@ export const useGameStore = create<GameState>()(
           activeSkills: updatedSkills,
           keyboardStatus: updatedKeyboard,
           targetingState: null,
+          usedActiveSkillInRound: true,
           notification: msg
         });
       },
@@ -1333,6 +1455,7 @@ export const useGameStore = create<GameState>()(
           activeSkills: updatedSkills,
           keyboardStatus: updatedKeyboard,
           targetingState: null,
+          usedActiveSkillInRound: true,
           notification: `Retro-Edição aplicada! Posição ${colIndex + 1} alterada para '${cleanChar}'. Cores recalculadas!`
         });
       },
@@ -1393,6 +1516,7 @@ export const useGameStore = create<GameState>()(
           activeSkills: updatedSkills,
           keyboardStatus: updatedKeyboard,
           targetingState: null,
+          usedActiveSkillInRound: true,
           notification: `Shift Swap aplicado! Letras permutadas na linha ${rowIndex + 1}.`
         });
       },
@@ -1454,6 +1578,7 @@ export const useGameStore = create<GameState>()(
           activeSkills: updatedSkills,
           lensHint,
           targetingState: null,
+          usedActiveSkillInRound: true,
           notification: `🔍 Lente Térmica: A letra [${char}] na linha ${rowIndex + 1} está posicionada ${directionText} (coluna ${colIndex + 1})!`
         });
       },
@@ -1487,12 +1612,14 @@ export const useGameStore = create<GameState>()(
       },
 
       chooseDraftCard: (card: SkillCard) => {
-        const { activeSkills, passives, maxKeys, keys } = get();
+        const { activeSkills, passives, maxKeys, keys, discoveredSkillIds } = get();
+        const currentDiscovered = discoveredSkillIds || ['ctrl_z', 'sonda_circuito'];
+        const updatedDiscovered = Array.from(new Set([...currentDiscovered, card.id]));
 
         if (card.type === 'active') {
           // Limite de 4 ativas
           const updated = [...activeSkills, card].slice(0, 4);
-          set({ activeSkills: updated });
+          set({ activeSkills: updated, discoveredSkillIds: updatedDiscovered });
         } else {
           // Passiva
           const updated = [...passives, card];
@@ -1505,7 +1632,7 @@ export const useGameStore = create<GameState>()(
             updatedKeys += 4;
           }
 
-          set({ passives: updated, maxKeys: updatedMax, keys: updatedKeys });
+          set({ passives: updated, maxKeys: updatedMax, keys: updatedKeys, discoveredSkillIds: updatedDiscovered });
         }
 
         get().startNextRound();
@@ -1557,7 +1684,8 @@ export const useGameStore = create<GameState>()(
         crtEnabled: state.crtEnabled,
         soundEnabled: state.soundEnabled !== false,
         careerStats: state.careerStats,
-        discoveredSkillIds: state.discoveredSkillIds
+        discoveredSkillIds: state.discoveredSkillIds,
+        hasSeenTutorial: state.hasSeenTutorial
       })
     }
   )
