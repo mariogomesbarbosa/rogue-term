@@ -1,26 +1,32 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion } from 'framer-motion';
-import { Trophy, Flame, RotateCcw, ArrowRight, ShieldCheck, Cpu, BookOpen } from 'lucide-react';
+import { Trophy, Flame, RotateCcw, ArrowRight, ShieldCheck, Cpu, BookOpen, Share2, Check, Heart } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { KeycapIcon } from './KeycapIcon';
+import { copyShareResult } from '@/utils/share';
 
 export const VictoryModal: React.FC = () => {
   const {
     gamePhase,
     score,
     streak,
-    keys,
-    maxKeys,
+    lives,
+    maxLives,
     sector,
+    stage,
+    runMode,
+    seed,
     activeSkills,
     passives,
     continueEndless,
     startNewRun,
     openCodex
   } = useGameStore();
+
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (gamePhase === 'victory') {
@@ -37,6 +43,24 @@ export const VictoryModal: React.FC = () => {
   }, [gamePhase]);
 
   if (gamePhase !== 'victory') return null;
+
+  const handleShare = async () => {
+    const success = await copyShareResult({
+      runMode,
+      seed,
+      score,
+      sector,
+      stage,
+      lives,
+      maxLives,
+      won: true,
+      activeSkillNames: [...activeSkills, ...passives].map(s => s.name)
+    });
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg select-none">
@@ -73,10 +97,11 @@ export const VictoryModal: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center border-x border-stone-800">
-            <span className="text-[10px] text-stone-400 uppercase font-bold">Teclas Finais</span>
+            <span className="text-[10px] text-stone-400 uppercase font-bold">Vidas Finais</span>
             <div className="flex items-center gap-1">
-              <span className="text-lg sm:text-xl font-black text-stone-100">{keys}</span>
-              <span className="text-xs text-stone-500 font-bold">/{maxKeys}</span>
+              <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
+              <span className="text-lg sm:text-xl font-black text-rose-300">{lives}</span>
+              <span className="text-xs text-stone-500 font-bold">/{maxLives}</span>
             </div>
           </div>
 
@@ -123,13 +148,31 @@ export const VictoryModal: React.FC = () => {
             </button>
 
             <button
-              onClick={startNewRun}
+              onClick={() => startNewRun()}
               className="py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 hover:text-stone-100 font-bold text-xs tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Nova Run</span>
             </button>
           </div>
+
+          {/* Botão Compartilhar Vitória */}
+          <button
+            onClick={handleShare}
+            className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">Vitória Copiada para o Clipboard!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-4 h-4 text-emerald-400" />
+                <span>Compartilhar Vitória da Run</span>
+              </>
+            )}
+          </button>
 
           <button
             onClick={openCodex}

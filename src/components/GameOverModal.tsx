@@ -1,14 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { RotateCcw, Skull, BookOpen } from 'lucide-react';
+import { RotateCcw, Skull, BookOpen, Share2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { copyShareResult } from '@/utils/share';
 
 export const GameOverModal: React.FC = () => {
-  const { gamePhase, targetWord, round, score, streak, startNewRun, openCodex } = useGameStore();
+  const {
+    gamePhase,
+    targetWord,
+    round,
+    score,
+    streak,
+    sector,
+    stage,
+    lives,
+    maxLives,
+    runMode,
+    seed,
+    activeSkills,
+    startNewRun,
+    openCodex
+  } = useGameStore();
+
+  const [copied, setCopied] = useState(false);
 
   if (gamePhase !== 'game_over') return null;
+
+  const handleShare = async () => {
+    const success = await copyShareResult({
+      runMode,
+      seed,
+      score,
+      sector,
+      stage,
+      lives,
+      maxLives,
+      won: false,
+      activeSkillNames: activeSkills.map(s => s.name)
+    });
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
 
   const title = 'SISTEMA COLAPSADO';
   const subtitle = 'Suas Vidas se esgotaram. A memória volátil do terminal foi descarregada.';
@@ -53,8 +89,8 @@ export const GameOverModal: React.FC = () => {
         {/* Estatísticas da Run */}
         <div className="grid grid-cols-3 gap-2 w-full">
           <div className="bg-stone-900 border border-stone-800 p-2.5 rounded-lg flex flex-col items-center">
-            <span className="text-[10px] text-stone-400 uppercase">Rodadas</span>
-            <span className="text-base font-bold text-stone-100">{round}</span>
+            <span className="text-[10px] text-stone-400 uppercase">Setor</span>
+            <span className="text-base font-bold text-stone-100">{sector}/8</span>
           </div>
 
           <div className="bg-stone-900 border border-stone-800 p-2.5 rounded-lg flex flex-col items-center">
@@ -70,16 +106,34 @@ export const GameOverModal: React.FC = () => {
 
         {/* Botão Reiniciar */}
         <button
-          onClick={startNewRun}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-stone-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(225,29,72,0.4)] transition-all active:scale-95 mt-2"
+          onClick={() => startNewRun()}
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-stone-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(225,29,72,0.4)] transition-all active:scale-95 mt-2 cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
           <span>Tentar Novamente (2 Vidas)</span>
         </button>
 
+        {/* Botão Compartilhar */}
+        <button
+          onClick={handleShare}
+          className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-cyan-500/40 text-cyan-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer"
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span className="text-emerald-400">Resultado Copiado!</span>
+            </>
+          ) : (
+            <>
+              <Share2 className="w-4 h-4 text-cyan-400" />
+              <span>Compartilhar Desempenho</span>
+            </>
+          )}
+        </button>
+
         <button
           onClick={openCodex}
-          className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/40 text-stone-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-2 rounded-xl bg-stone-900/60 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/40 text-stone-400 hover:text-stone-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
           <BookOpen className="w-4 h-4 text-amber-400" />
           <span>Ver Estatísticas & Compêndio</span>

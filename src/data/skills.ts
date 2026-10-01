@@ -247,7 +247,11 @@ export const ALL_SKILLS: SkillCard[] = [
 ];
 
 // Sorteador ponderado estilo Balatro para o Draft (3 opções)
-export function getRandomDraftChoices(count: number = 3, existingSkillIds: string[] = []): SkillCard[] {
+export function getRandomDraftChoices(
+  count: number = 3,
+  existingSkillIds: string[] = [],
+  rng?: () => number
+): SkillCard[] {
   const available = ALL_SKILLS.filter(s => !existingSkillIds.includes(s.id));
   if (available.length <= count) return available;
 
@@ -260,11 +264,12 @@ export function getRandomDraftChoices(count: number = 3, existingSkillIds: strin
 
   const pool = [...available];
   const choices: SkillCard[] = [];
+  const randFloat = () => (rng ? rng() : Math.random());
 
   while (choices.length < count && pool.length > 0) {
     // Cálculo da soma ponderada
     const totalWeight = pool.reduce((sum, item) => sum + weights[item.rarity], 0);
-    let rand = Math.random() * totalWeight;
+    let rand = randFloat() * totalWeight;
     let selectedIndex = 0;
 
     for (let i = 0; i < pool.length; i++) {
@@ -301,8 +306,13 @@ export function getCardSellValue(rarity: Rarity): number {
   return Math.max(1, Math.floor(getCardPrice(rarity) / 2));
 }
 
-export function generateShopItems(existingSkillIds: string[], sector: number, hasDiscount: boolean = false): import('@/types/game').ShopItem[] {
-  const cardChoices = getRandomDraftChoices(2, existingSkillIds);
+export function generateShopItems(
+  existingSkillIds: string[],
+  sector: number,
+  hasDiscount: boolean = false,
+  rng?: () => number
+): import('@/types/game').ShopItem[] {
+  const cardChoices = getRandomDraftChoices(2, existingSkillIds, rng);
   const items: import('@/types/game').ShopItem[] = [];
 
   // 1. Cartas de Habilidade

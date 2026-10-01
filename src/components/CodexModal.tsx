@@ -22,7 +22,8 @@ import {
   Clock,
   Eye,
   Search,
-  Cpu
+  Cpu,
+  Calendar
 } from 'lucide-react';
 
 export const CodexModal: React.FC = () => {
@@ -298,6 +299,53 @@ export const CodexModal: React.FC = () => {
                     Setor {stats.highestSector}
                   </span>
                   <span className="text-[9px] text-stone-500">Profundidade máxima</span>
+                </div>
+              </div>
+
+              {/* Seção Desafio Diário */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/30 via-stone-900/60 to-stone-900/40 border border-amber-500/30 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase font-bold text-amber-400 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-amber-400" />
+                    Desempenho no Desafio Diário
+                  </span>
+                  {stats.lastDailyDate && (
+                    <span className="text-[10px] text-stone-400 font-bold">
+                      Último jogo: #{stats.lastDailyDate}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 rounded-lg bg-stone-950/70 border border-stone-800 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-stone-400 uppercase font-bold flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-amber-400" />
+                      Sequência Diária
+                    </span>
+                    <span className="text-lg font-black text-amber-300">
+                      {stats.dailyCurrentStreak || 0} dias
+                    </span>
+                  </div>
+
+                  <div className="p-2 rounded-lg bg-stone-950/70 border border-stone-800 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-stone-400 uppercase font-bold flex items-center gap-1">
+                      <Trophy className="w-3 h-3 text-amber-400" />
+                      Recorde Diário
+                    </span>
+                    <span className="text-lg font-black text-stone-200">
+                      {stats.dailyMaxStreak || 0} dias
+                    </span>
+                  </div>
+
+                  <div className="p-2 rounded-lg bg-stone-950/70 border border-stone-800 flex flex-col items-center text-center">
+                    <span className="text-[10px] text-stone-400 uppercase font-bold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      Melhor Diário
+                    </span>
+                    <span className="text-lg font-black text-stone-200">
+                      {(stats.dailyHighScore || 0).toLocaleString('pt-BR')} pts
+                    </span>
+                  </div>
                 </div>
               </div>
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen, HelpCircle, Heart } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen, HelpCircle, Heart, Calendar } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -22,6 +22,8 @@ export const Header: React.FC = () => {
     toggleSound,
     openCodex,
     openTutorial,
+    openDailyModal,
+    runMode,
     startNewRun
   } = useGameStore();
 
@@ -105,6 +107,18 @@ export const Header: React.FC = () => {
 
       {/* Ações (Manual, Compêndio, Som, CRT & Novo Jogo) */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={openDailyModal}
+          className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${
+            runMode === 'daily'
+              ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+              : 'border-stone-800 bg-stone-900 text-stone-300 hover:border-amber-500/50 hover:text-amber-400'
+          }`}
+          title={runMode === 'daily' ? 'Desafio Diário em jogo' : 'Desafio Diário & Sementes'}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={openTutorial}
           className="p-1.5 rounded border border-stone-800 bg-stone-900 text-stone-300 hover:border-amber-500/50 hover:text-amber-400 hover:bg-stone-800 transition-colors"

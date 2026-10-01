@@ -108,6 +108,16 @@ export interface GameStats {
   skillsUsedCount: number;
 }
 
+export type RunMode = 'standard' | 'daily' | 'custom_seed';
+
+export interface DailyResult {
+  date: string;
+  score: number;
+  sectorReached: number;
+  won: boolean;
+  completedAt: number;
+}
+
 export interface CareerStats {
   gamesPlayed: number;
   gamesWon: number;
@@ -118,4 +128,12 @@ export interface CareerStats {
   currentStreak: number;
   bossesDefeated: number;
   guessDistribution: Record<'1' | '2' | '3' | '4' | '5' | '6', number>;
+  // Estatísticas do Desafio Diário
+  dailyGamesPlayed?: number;
+  dailyGamesWon?: number;
+  dailyCurrentStreak?: number;
+  dailyMaxStreak?: number;
+  dailyHighScore?: number;
+  lastDailyDate?: string | null;
 }
+

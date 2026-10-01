@@ -68,8 +68,9 @@ export function isValidWord(word: string): boolean {
   return VALID_GUESSES.has(norm);
 }
 
-export function getRandomTargetWord(): string {
-  const randomIndex = Math.floor(Math.random() * TARGET_WORDS.length);
+export function getRandomTargetWord(rng?: () => number): string {
+  const randomFloat = rng ? rng() : Math.random();
+  const randomIndex = Math.floor(randomFloat * TARGET_WORDS.length);
   const target = TARGET_WORDS[randomIndex];
   return getCanonicalWord(target);
 }

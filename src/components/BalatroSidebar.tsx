@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen, HelpCircle, Heart } from 'lucide-react';
+import { Tv, RotateCcw, Flame, ShieldAlert, Cpu, Skull, Coins, Volume2, VolumeX, BookOpen, HelpCircle, Heart, Calendar } from 'lucide-react';
 
 export const BalatroSidebar: React.FC = () => {
   const {
@@ -25,6 +25,9 @@ export const BalatroSidebar: React.FC = () => {
     toggleSound,
     openCodex,
     openTutorial,
+    openDailyModal,
+    runMode,
+    seed,
     startNewRun
   } = useGameStore();
 
@@ -45,6 +48,48 @@ export const BalatroSidebar: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Card Seletor de Modo & Semente */}
+        <button
+          onClick={openDailyModal}
+          className={`w-full rounded-xl border p-2.5 flex items-center justify-between transition-all cursor-pointer text-left ${
+            runMode === 'daily'
+              ? 'bg-amber-950/40 border-amber-500/70 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)] hover:border-amber-400'
+              : runMode === 'custom_seed'
+              ? 'bg-purple-950/40 border-purple-500/70 text-purple-300 hover:border-purple-400'
+              : 'bg-stone-900/60 border-stone-800 text-stone-300 hover:border-stone-700'
+          }`}
+          title="Clique para abrir Modos de Jogo / Desafio Diário / Sementes"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className={`p-1.5 rounded-lg ${
+                runMode === 'daily'
+                  ? 'bg-amber-500/20 text-amber-400'
+                  : runMode === 'custom_seed'
+                  ? 'bg-purple-500/20 text-purple-400'
+                  : 'bg-stone-800 text-stone-400'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-wider truncate">
+                {runMode === 'daily'
+                  ? 'Desafio Diário'
+                  : runMode === 'custom_seed'
+                  ? 'Seed Custom'
+                  : 'Modo Livre'}
+              </span>
+              <span className="text-[9px] text-stone-500 font-bold font-mono truncate">
+                #{seed}
+              </span>
+            </div>
+          </div>
+          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-stone-950/80 border border-stone-800 text-amber-400 uppercase shrink-0">
+            Mudar
+          </span>
+        </button>
 
         <div className="h-px w-full bg-gradient-to-r from-stone-800 via-stone-700 to-transparent my-1" />
       </div>

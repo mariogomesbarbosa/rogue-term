@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails, CareerStats } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails, CareerStats, RunMode } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord, getCanonicalWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
+import { SeededRNG, getDailySeed, formatDailyDate } from '@/utils/rng';
 import confetti from 'canvas-confetti';
 import { sound } from '@/utils/sound';
 
@@ -69,8 +70,18 @@ interface GameState {
   closeTutorial: () => void;
   setHasSeenTutorial: (seen: boolean) => void;
 
+  // Modos de Jogo e Sementes (Seeds)
+  runMode: RunMode;
+  seed: string;
+  dailyCompletedDate: string | null;
+  isDailyModalOpen: boolean;
+  openDailyModal: () => void;
+  closeDailyModal: () => void;
+  startDailyRun: () => void;
+  startCustomSeedRun: (seedInput: string) => void;
+
   // Ações
-  startNewRun: () => void;
+  startNewRun: (customSeed?: string, mode?: RunMode) => void;
   startNextRound: () => void;
   continueEndless: () => void;
   proceedFromRoundWin: () => void;
@@ -301,7 +312,8 @@ function calculateRoundWinState({
     ...passives.map(s => s.id)
   ];
   const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
-  const newShopItems = generateShopItems(existingIds, sector, hasCompiler);
+  const shopRng = new SeededRNG(`${state.seed}:shop:${sector}:${stage}:0`).next;
+  const newShopItems = generateShopItems(existingIds, sector, hasCompiler, shopRng);
 
   // Agora vamos sempre para 'round_won' para mostrar a tela de vitória com a palavra, tempo e pontos!
   const isFinalVictory = isBossFight && sector >= maxSectors && !endlessMode;
@@ -335,6 +347,23 @@ function calculateRoundWinState({
   const clampedGuess = String(Math.min(6, Math.max(1, guessIndex))) as '1' | '2' | '3' | '4' | '5' | '6';
   newDist[clampedGuess] = (newDist[clampedGuess] || 0) + 1;
 
+  const isDaily = state.runMode === 'daily';
+  let dailyWon = currentCareerStats.dailyGamesWon || 0;
+  let dailyPlayed = currentCareerStats.dailyGamesPlayed || 0;
+  let dailyStreak = currentCareerStats.dailyCurrentStreak || 0;
+  let dailyMaxStreak = currentCareerStats.dailyMaxStreak || 0;
+  let dailyHighScore = currentCareerStats.dailyHighScore || 0;
+  let lastDailyDate = currentCareerStats.lastDailyDate || null;
+
+  if (isDaily && isFinalVictory) {
+    dailyWon += 1;
+    dailyPlayed += 1;
+    dailyStreak += 1;
+    dailyMaxStreak = Math.max(dailyMaxStreak, dailyStreak);
+    dailyHighScore = Math.max(dailyHighScore, newScore);
+    lastDailyDate = state.seed;
+  }
+
   const nextCareerStreak = currentCareerStats.currentStreak + 1;
   const updatedCareerStats: CareerStats = {
     ...currentCareerStats,
@@ -346,7 +375,13 @@ function calculateRoundWinState({
     bossesDefeated: currentCareerStats.bossesDefeated + (isBossFight ? 1 : 0),
     gamesWon: currentCareerStats.gamesWon + (isFinalVictory ? 1 : 0),
     gamesPlayed: currentCareerStats.gamesPlayed + (isFinalVictory ? 1 : 0),
-    guessDistribution: newDist
+    guessDistribution: newDist,
+    dailyGamesPlayed: dailyPlayed,
+    dailyGamesWon: dailyWon,
+    dailyCurrentStreak: dailyStreak,
+    dailyMaxStreak: dailyMaxStreak,
+    dailyHighScore: dailyHighScore,
+    lastDailyDate: lastDailyDate
   };
 
   const currentDiscovered = state.discoveredSkillIds || ['ctrl_z', 'sonda_circuito'];
@@ -449,7 +484,14 @@ export const useGameStore = create<GameState>()(
       closeTutorial: () => set({ isTutorialOpen: false }),
       setHasSeenTutorial: (seen: boolean) => set({ hasSeenTutorial: seen }),
 
-      startNewRun: () => {
+      runMode: 'standard',
+      seed: 'RT-START',
+      dailyCompletedDate: null,
+      isDailyModalOpen: false,
+      openDailyModal: () => set({ isDailyModalOpen: true }),
+      closeDailyModal: () => set({ isDailyModalOpen: false }),
+
+      startNewRun: (customSeed?: string, mode?: RunMode) => {
         const { careerStats, guesses } = get();
         const currentStats = careerStats || {
           gamesPlayed: 0,
@@ -468,8 +510,33 @@ export const useGameStore = create<GameState>()(
           currentStreak: 0
         };
 
-        const firstWord = getRandomTargetWord();
+        let activeRunMode: RunMode = mode || 'standard';
+        let activeSeed: string;
+
+        if (activeRunMode === 'daily') {
+          activeSeed = getDailySeed();
+        } else if (customSeed && customSeed.trim().length > 0) {
+          activeSeed = customSeed.trim().toUpperCase();
+          activeRunMode = 'custom_seed';
+        } else {
+          activeSeed = `RT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          activeRunMode = 'standard';
+        }
+
+        const firstWordRng = new SeededRNG(`${activeSeed}:word:1:1`).next;
+        const firstWord = getRandomTargetWord(firstWordRng);
+
+        const modeNotification =
+          activeRunMode === 'daily'
+            ? `📅 DESAFIO DIÁRIO #${formatDailyDate(activeSeed)}! Boa sorte, operador!`
+            : activeRunMode === 'custom_seed'
+            ? `🎲 SEMENTE CUSTOMIZADA: [${activeSeed}] carregada!`
+            : `Setor 1 iniciado! Você tem 2 Vidas [❤️ ❤️] para sobreviver à run.`;
+
         set({
+          runMode: activeRunMode,
+          seed: activeSeed,
+          isDailyModalOpen: false,
           careerStats: updatedCareerStats,
           lives: 2,
           maxLives: 2,
@@ -504,13 +571,21 @@ export const useGameStore = create<GameState>()(
           lastRoundDuration: 0,
           lastRoundScoreDetails: null,
           lensHint: null,
-          notification: 'Setor 1 iniciado! Você tem 2 Vidas [❤️ ❤️] para sobreviver à run.',
+          notification: modeNotification,
           shakeBoard: false,
           keyboardStatus: {},
           targetingState: null,
           usedActiveSkillInRound: false,
           usedThermalPasteInRound: false
         });
+      },
+
+      startDailyRun: () => {
+        get().startNewRun(undefined, 'daily');
+      },
+
+      startCustomSeedRun: (seedInput: string) => {
+        get().startNewRun(seedInput, 'custom_seed');
       },
 
       proceedFromRoundWin: () => {
@@ -525,15 +600,17 @@ export const useGameStore = create<GameState>()(
       },
 
       continueEndless: () => {
-        const { sector, round, activeSkills, passives } = get();
+        const { sector, round, activeSkills, passives, seed } = get();
         const nextSector = sector + 1;
-        const nextWord = getRandomTargetWord();
+        const wordRng = new SeededRNG(`${seed}:word:${nextSector}:1`).next;
+        const nextWord = getRandomTargetWord(wordRng);
         const existingIds = [
           ...activeSkills.map(s => s.id),
           ...passives.map(s => s.id)
         ];
         const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
-        const newShopItems = generateShopItems(existingIds, nextSector, hasCompiler);
+        const shopRng = new SeededRNG(`${seed}:shop:${nextSector}:1:0`).next;
+        const newShopItems = generateShopItems(existingIds, nextSector, hasCompiler, shopRng);
 
         set({
           endlessMode: true,
@@ -687,7 +764,7 @@ export const useGameStore = create<GameState>()(
       },
 
       rerollShop: () => {
-        const { coins, rerollCost, sector, activeSkills, passives } = get();
+        const { coins, rerollCost, sector, stage, activeSkills, passives, seed } = get();
         if (coins < rerollCost) {
           sound.playErrorBuzz();
           set({
@@ -704,7 +781,8 @@ export const useGameStore = create<GameState>()(
           ...passives.map(s => s.id)
         ];
         const hasCompiler = passives.some(p => p.id === 'compilador_otimizado');
-        const newItems = generateShopItems(existingIds, sector, hasCompiler);
+        const shopRng = new SeededRNG(`${seed}:shop:${sector}:${stage}:${rerollCost}`).next;
+        const newItems = generateShopItems(existingIds, sector, hasCompiler, shopRng);
 
         set({
           coins: coins - rerollCost,
@@ -719,8 +797,7 @@ export const useGameStore = create<GameState>()(
       },
 
       startNextRound: () => {
-        const { evaluations, passives, round, sector, stage } = get();
-        const nextWord = getRandomTargetWord();
+        const { evaluations, passives, round, sector, stage, seed } = get();
         const nextRound = round + 1;
 
         let nextSector = sector;
@@ -730,8 +807,14 @@ export const useGameStore = create<GameState>()(
         if (stage === 3) {
           nextSector = sector + 1;
           nextStage = 1;
-        } else if (nextStage === 3) {
-          nextBoss = generateBossForSector(nextSector, nextWord);
+        }
+
+        const wordRng = new SeededRNG(`${seed}:word:${nextSector}:${nextStage}`).next;
+        const nextWord = getRandomTargetWord(wordRng);
+
+        if (nextStage === 3) {
+          const bossRng = new SeededRNG(`${seed}:boss:${nextSector}`).next;
+          nextBoss = generateBossForSector(nextSector, nextWord, bossRng);
         }
 
         const newKeyboardStatus: Record<string, TileStatus> = {};
@@ -1045,10 +1128,20 @@ export const useGameStore = create<GameState>()(
             bossesDefeated: 0,
             guessDistribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }
           };
+          const isDaily = get().runMode === 'daily';
+          let dailyPlayed = currentStats.dailyGamesPlayed || 0;
+          let lastDailyDate = currentStats.lastDailyDate || null;
+          if (isDaily) {
+            dailyPlayed += 1;
+            lastDailyDate = get().seed;
+          }
           return {
             ...currentStats,
             gamesPlayed: currentStats.gamesPlayed + 1,
-            currentStreak: 0
+            currentStreak: 0,
+            dailyGamesPlayed: dailyPlayed,
+            dailyCurrentStreak: isDaily ? 0 : currentStats.dailyCurrentStreak,
+            lastDailyDate: lastDailyDate
           };
         };
 
@@ -1714,7 +1807,10 @@ export const useGameStore = create<GameState>()(
         soundEnabled: state.soundEnabled !== false,
         careerStats: state.careerStats,
         discoveredSkillIds: state.discoveredSkillIds,
-        hasSeenTutorial: state.hasSeenTutorial
+        hasSeenTutorial: state.hasSeenTutorial,
+        runMode: state.runMode ?? 'standard',
+        seed: state.seed ?? '',
+        dailyCompletedDate: state.dailyCompletedDate ?? null
       })
     }
   )

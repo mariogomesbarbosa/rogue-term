@@ -67,7 +67,7 @@ export const BOSS_TEMPLATES: BossTemplate[] = [
   }
 ];
 
-export function generateBossForSector(sector: number, _targetWord: string): Boss {
+export function generateBossForSector(sector: number, _targetWord: string, rng?: () => number): Boss {
   // No Setor 8 (Chefe Final da Run regular): Kernel Panic do Mainframe
   if (sector === 8) {
     return {
@@ -95,14 +95,16 @@ export function generateBossForSector(sector: number, _targetWord: string): Boss
   // Setor 9+ (Endless): Sorteia aleatoriamente entre todos os chefes
   let template: BossTemplate;
 
+  const randFloat = () => (rng ? rng() : Math.random());
+
   if (sector >= 1 && sector <= 6) {
     template = BOSS_TEMPLATES[sector - 1];
   } else if (sector === 7) {
     const pool = [BOSS_TEMPLATES[1], BOSS_TEMPLATES[3], BOSS_TEMPLATES[4]]; // Hard-Core, Firewall, Ghosting
-    template = pool[Math.floor(Math.random() * pool.length)];
+    template = pool[Math.floor(randFloat() * pool.length)];
   } else {
     // Endless mode (> 8)
-    template = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
+    template = BOSS_TEMPLATES[Math.floor(randFloat() * BOSS_TEMPLATES.length)];
   }
 
   return {
