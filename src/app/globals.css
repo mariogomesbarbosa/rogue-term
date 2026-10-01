@@ -30,3 +30,130 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Animação tátil de Digitação (Pop-In) */
+@keyframes tilePop {
+  0% {
+    transform: scale(0.82);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-tile-pop {
+  animation: tilePop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 3D Perspective Container */
+.perspective-grid {
+  perspective: 1000px;
+}
+
+.tile-3d {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Animações de Flip 3D (Wordle/Balatro style) */
+@keyframes tileFlipCorrect {
+  0% {
+    transform: rotateX(0deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  49.9% {
+    transform: rotateX(90deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  50% {
+    transform: rotateX(90deg);
+    background-color: rgba(5, 150, 105, 0.9);
+    border-color: #34d399;
+    color: #d1fae5;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+  }
+  100% {
+    transform: rotateX(0deg);
+    background-color: rgba(5, 150, 105, 0.9);
+    border-color: #34d399;
+    color: #d1fae5;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+  }
+}
+
+@keyframes tileFlipPresent {
+  0% {
+    transform: rotateX(0deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  49.9% {
+    transform: rotateX(90deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  50% {
+    transform: rotateX(90deg);
+    background-color: rgba(217, 119, 6, 0.9);
+    border-color: #fbbf24;
+    color: #fef3c7;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+  }
+  100% {
+    transform: rotateX(0deg);
+    background-color: rgba(217, 119, 6, 0.9);
+    border-color: #fbbf24;
+    color: #fef3c7;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+  }
+}
+
+@keyframes tileFlipAbsent {
+  0% {
+    transform: rotateX(0deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  49.9% {
+    transform: rotateX(90deg);
+    background-color: rgba(28, 25, 23, 0.9);
+    border-color: rgba(87, 83, 78, 0.8);
+    color: #f5f5f4;
+  }
+  50% {
+    transform: rotateX(90deg);
+    background-color: rgba(41, 37, 36, 0.85);
+    border-color: rgba(68, 64, 60, 0.85);
+    color: #a8a29e;
+    box-shadow: none;
+  }
+  100% {
+    transform: rotateX(0deg);
+    background-color: rgba(41, 37, 36, 0.85);
+    border-color: rgba(68, 64, 60, 0.85);
+    color: #a8a29e;
+    box-shadow: none;
+  }
+}
+
+.tile-flip-correct {
+  animation: tileFlipCorrect 0.36s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.tile-flip-present {
+  animation: tileFlipPresent 0.36s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.tile-flip-absent {
+  animation: tileFlipAbsent 0.36s cubic-bezier(0.4, 0, 0.2, 1) both;
+}

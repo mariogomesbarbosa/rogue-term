@@ -131,7 +131,7 @@ function calculateRoundWinState({
   } catch {
     // No-op if confetti fails
   }
-  setTimeout(() => sound.playVictoryFanfare(), 650);
+  setTimeout(() => sound.playVictoryFanfare(), 850);
 
   const { targetWord, passives, maxKeys, round, streak, score, activeSkills, sector, stage, maxSectors, endlessMode, currentBoss } = state;
 
@@ -832,7 +832,7 @@ export const useGameStore = create<GameState>()(
 
         // Tocar avaliação sequencial de cada letra (flip e tons harmoniosos)
         evalStatuses.forEach((st, idx) => {
-          setTimeout(() => sound.playLetterEvaluation(st, idx), (idx + 1) * 110);
+          setTimeout(() => sound.playLetterEvaluation(st, idx), idx * 110 + 180);
         });
 
         const correctOrPresentCount = evalStatuses.filter(s => s !== 'absent').length;

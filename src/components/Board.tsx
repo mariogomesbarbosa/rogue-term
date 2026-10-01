@@ -38,7 +38,8 @@ export const Board: React.FC = () => {
     isCurrentActive: boolean,
     isCurrentRow: boolean,
     isGlitched: boolean = false,
-    isLensTargetable: boolean = false
+    isLensTargetable: boolean = false,
+    isRecentlyFlipped: boolean = false
   ) => {
     // Tamanhos compactos e responsivos para caber perfeitamente sem scroll (100dvh)
     const base =
@@ -78,6 +79,18 @@ export const Board: React.FC = () => {
         base +
         'cursor-pointer bg-stone-900/80 border-2 border-stone-600/80 text-stone-100 hover:border-amber-500/60'
       );
+    }
+
+    if (isRecentlyFlipped) {
+      switch (status) {
+        case 'correct':
+          return base + 'tile-3d tile-flip-correct';
+        case 'present':
+          return base + 'tile-3d tile-flip-present';
+        case 'absent':
+        default:
+          return base + 'tile-3d tile-flip-absent';
+      }
     }
 
     switch (status) {
@@ -202,14 +215,16 @@ export const Board: React.FC = () => {
       <motion.div
         animate={shakeBoard ? { x: [-10, 10, -6, 6, -3, 3, 0] } : {}}
         transition={{ duration: 0.35 }}
-        className="flex flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl bg-stone-900/40 border border-stone-800/80 shadow-[0_6px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm max-h-[50dvh] sm:max-h-[55dvh] overflow-y-auto no-scrollbar"
+        className="flex flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl bg-stone-900/40 border border-stone-800/80 shadow-[0_6px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm max-h-[50dvh] sm:max-h-[55dvh] overflow-y-auto no-scrollbar perspective-grid"
       >
         {rows.map((_, rowIndex) => {
           const isEvaluated = rowIndex < evaluations.length;
           const isCurrent = rowIndex === evaluations.length;
+          const submittedAt = isEvaluated ? (evaluations[rowIndex]?.submittedAt || 0) : 0;
+          const isRecentlyFlipped = isEvaluated && (Date.now() - submittedAt < 2500);
 
           return (
-            <div key={rowIndex} className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            <div key={rowIndex} className="grid grid-cols-5 gap-1.5 sm:gap-2 perspective-grid">
               {Array.from({ length: 5 }).map((_, colIndex) => {
                 let char = '';
                 let status: TileStatus = 'empty';
@@ -236,21 +251,33 @@ export const Board: React.FC = () => {
                   selectedLetterPos?.row === rowIndex && selectedLetterPos?.col === colIndex;
                 const isCurrentActive = isCurrent && activeTileCol === colIndex && !targetingState;
 
+                const tileKey = isCurrent
+                  ? `current-${colIndex}-${char}`
+                  : isEvaluated
+                  ? `eval-${rowIndex}-${colIndex}-${submittedAt}`
+                  : `empty-${rowIndex}-${colIndex}`;
+
+                const popClass = isCurrent && char ? ' animate-tile-pop' : '';
+
                 return (
                   <motion.div
-                    key={colIndex}
+                    key={tileKey}
                     whileHover={isSelectable || isCurrent ? { scale: 1.05 } : {}}
                     whileTap={isSelectable || isCurrent ? { scale: 0.95 } : {}}
                     onClick={() => handleTileClick(rowIndex, colIndex, isCurrent)}
-                    className={getTileClasses(
-                      status,
-                      isSelectable,
-                      isSelected,
-                      isCurrentActive,
-                      isCurrent,
-                      isGlitched,
-                      isLensTargetable
-                    )}
+                    style={isRecentlyFlipped && !isGlitched ? { animationDelay: `${colIndex * 110}ms` } : undefined}
+                    className={
+                      getTileClasses(
+                        status,
+                        isSelectable,
+                        isSelected,
+                        isCurrentActive,
+                        isCurrent,
+                        isGlitched,
+                        isLensTargetable,
+                        isRecentlyFlipped && !isGlitched
+                      ) + popClass
+                    }
                   >
                     {char}
 
