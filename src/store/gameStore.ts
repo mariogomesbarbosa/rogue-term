@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails } from '@/types/game';
+import { GamePhase, EvaluatedRow, SkillCard, TileStatus, Boss, ShopItem, RoundEarnings, LensHint, RoundScoreDetails, CareerStats } from '@/types/game';
 import { getRandomTargetWord, evaluateGuess, normalizeWord, isValidWord, getCanonicalWord } from '@/data/words';
 import { ALL_SKILLS, getRandomDraftChoices, generateShopItems, getCardSellValue } from '@/data/skills';
 import { generateBossForSector } from '@/data/bosses';
@@ -49,6 +49,13 @@ interface GameState {
   shakeBoard: boolean;
   keyboardStatus: Record<string, TileStatus>;
   targetingState: TargetingState | null;
+
+  // Carreira e Compêndio (Codex)
+  careerStats: CareerStats;
+  discoveredSkillIds: string[];
+  isCodexOpen: boolean;
+  openCodex: () => void;
+  closeCodex: () => void;
 
   // Ações
   startNewRun: () => void;
@@ -286,6 +293,43 @@ function calculateRoundWinState({
     }
   }
 
+  // Atualizar Estatísticas da Carreira e Descobertas
+  const currentCareerStats = state.careerStats || {
+    gamesPlayed: 0,
+    gamesWon: 0,
+    wordsSolved: 0,
+    highScore: 0,
+    highestSector: 1,
+    maxStreak: 0,
+    currentStreak: 0,
+    bossesDefeated: 0,
+    guessDistribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }
+  };
+
+  const newDist = { ...(currentCareerStats.guessDistribution || { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }) };
+  const clampedGuess = String(Math.min(6, Math.max(1, guessIndex))) as '1' | '2' | '3' | '4' | '5' | '6';
+  newDist[clampedGuess] = (newDist[clampedGuess] || 0) + 1;
+
+  const nextCareerStreak = currentCareerStats.currentStreak + 1;
+  const updatedCareerStats: CareerStats = {
+    ...currentCareerStats,
+    wordsSolved: currentCareerStats.wordsSolved + 1,
+    highScore: Math.max(currentCareerStats.highScore, newScore),
+    highestSector: Math.max(currentCareerStats.highestSector, sector),
+    currentStreak: nextCareerStreak,
+    maxStreak: Math.max(currentCareerStats.maxStreak, nextCareerStreak),
+    bossesDefeated: currentCareerStats.bossesDefeated + (isBossFight ? 1 : 0),
+    gamesWon: currentCareerStats.gamesWon + (isFinalVictory ? 1 : 0),
+    gamesPlayed: currentCareerStats.gamesPlayed + (isFinalVictory ? 1 : 0),
+    guessDistribution: newDist
+  };
+
+  const currentDiscovered = state.discoveredSkillIds || ['ctrl_z', 'sonda_circuito'];
+  const newDiscoveredIds = newShopItems
+    .filter(i => i.type === 'card' && i.card)
+    .map(i => i.card!.id);
+  const updatedDiscovered = Array.from(new Set([...currentDiscovered, ...newDiscoveredIds]));
+
   return {
     guesses: newGuesses,
     evaluations: newEvaluations,
@@ -303,6 +347,8 @@ function calculateRoundWinState({
     lastRoundScoreDetails: scoreDetails,
     gamePhase: nextGamePhase,
     targetingState: null,
+    careerStats: updatedCareerStats,
+    discoveredSkillIds: updatedDiscovered,
     ...(updatedSkills ? { activeSkills: updatedSkills } : {}),
     notification: winMessage
   };
@@ -349,9 +395,44 @@ export const useGameStore = create<GameState>()(
       keyboardStatus: {},
       targetingState: null,
 
+      careerStats: {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        wordsSolved: 0,
+        highScore: 0,
+        highestSector: 1,
+        maxStreak: 0,
+        currentStreak: 0,
+        bossesDefeated: 0,
+        guessDistribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }
+      },
+      discoveredSkillIds: ['ctrl_z', 'sonda_circuito'],
+      isCodexOpen: false,
+      openCodex: () => set({ isCodexOpen: true }),
+      closeCodex: () => set({ isCodexOpen: false }),
+
       startNewRun: () => {
+        const { careerStats, guesses } = get();
+        const currentStats = careerStats || {
+          gamesPlayed: 0,
+          gamesWon: 0,
+          wordsSolved: 0,
+          highScore: 0,
+          highestSector: 1,
+          maxStreak: 0,
+          currentStreak: 0,
+          bossesDefeated: 0,
+          guessDistribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }
+        };
+        const updatedCareerStats: CareerStats = {
+          ...currentStats,
+          gamesPlayed: guesses && guesses.length > 0 ? currentStats.gamesPlayed + 1 : currentStats.gamesPlayed,
+          currentStreak: 0
+        };
+
         const firstWord = getRandomTargetWord();
         set({
+          careerStats: updatedCareerStats,
           keys: 15,
           maxKeys: 20,
           score: 0,
@@ -878,6 +959,26 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
+        // Helper para atualizar derrota nas estatísticas de carreira
+        const recordDefeatStats = (): CareerStats => {
+          const currentStats = get().careerStats || {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            wordsSolved: 0,
+            highScore: 0,
+            highestSector: 1,
+            maxStreak: 0,
+            currentStreak: 0,
+            bossesDefeated: 0,
+            guessDistribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 }
+          };
+          return {
+            ...currentStats,
+            gamesPlayed: currentStats.gamesPlayed + 1,
+            currentStreak: 0
+          };
+        };
+
         // Verificar derrota por limite de 6 tentativas preenchidas no grid
         if (newGuesses.length >= 6) {
           sound.playGameOver();
@@ -889,6 +990,7 @@ export const useGameStore = create<GameState>()(
             keys: remainingKeys,
             keyboardStatus: updatedKeyboard,
             gamePhase: 'game_over',
+            careerStats: recordDefeatStats(),
             notification: `Tentativas esgotadas! A palavra era ${targetWord}.`
           });
           return;
@@ -905,6 +1007,7 @@ export const useGameStore = create<GameState>()(
             keys: 0,
             keyboardStatus: updatedKeyboard,
             gamePhase: 'game_over',
+            careerStats: recordDefeatStats(),
             notification: `Suas Teclas acabaram! A palavra era ${targetWord}.`
           });
           return;
@@ -1452,7 +1555,9 @@ export const useGameStore = create<GameState>()(
         lastRoundScoreDetails: state.lastRoundScoreDetails ?? null,
         keyboardStatus: state.keyboardStatus,
         crtEnabled: state.crtEnabled,
-        soundEnabled: state.soundEnabled !== false
+        soundEnabled: state.soundEnabled !== false,
+        careerStats: state.careerStats,
+        discoveredSkillIds: state.discoveredSkillIds
       })
     }
   )

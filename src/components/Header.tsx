@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { KeycapIcon } from './KeycapIcon';
 import { RoundTimer } from './RoundTimer';
-import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX } from 'lucide-react';
+import { Tv, RotateCcw, Flame, Skull, Volume2, VolumeX, BookOpen } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -21,6 +21,7 @@ export const Header: React.FC = () => {
     toggleCrt,
     soundEnabled,
     toggleSound,
+    openCodex,
     startNewRun
   } = useGameStore();
 
@@ -93,8 +94,16 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Ações (Som, CRT & Novo Jogo) */}
+      {/* Ações (Compêndio, Som, CRT & Novo Jogo) */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={openCodex}
+          className="p-1.5 rounded border border-stone-800 bg-stone-900 text-amber-400 hover:border-amber-500/50 hover:bg-stone-800 transition-colors"
+          title="Ver Compêndio & Estatísticas"
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={toggleSound}
           className={`p-1.5 rounded border text-[10px] font-mono transition-colors ${

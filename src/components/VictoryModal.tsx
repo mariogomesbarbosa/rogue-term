@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { motion } from 'framer-motion';
-import { Trophy, Flame, RotateCcw, ArrowRight, ShieldCheck, Cpu } from 'lucide-react';
+import { Trophy, Flame, RotateCcw, ArrowRight, ShieldCheck, Cpu, BookOpen } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { KeycapIcon } from './KeycapIcon';
 
@@ -18,7 +18,8 @@ export const VictoryModal: React.FC = () => {
     activeSkills,
     passives,
     continueEndless,
-    startNewRun
+    startNewRun,
+    openCodex
   } = useGameStore();
 
   useEffect(() => {
@@ -111,21 +112,31 @@ export const VictoryModal: React.FC = () => {
         </div>
 
         {/* Ações */}
-        <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-          <button
-            onClick={continueEndless}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-stone-950 font-black text-sm tracking-wide shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-          >
-            <span>Modo Infinito (Setor 9+)</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+        <div className="flex flex-col gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              onClick={continueEndless}
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-stone-950 font-black text-sm tracking-wide shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+            >
+              <span>Modo Infinito (Setor 9+)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={startNewRun}
+              className="py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 hover:text-stone-100 font-bold text-xs tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Nova Run</span>
+            </button>
+          </div>
 
           <button
-            onClick={startNewRun}
-            className="py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 hover:text-stone-100 font-bold text-xs tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-colors"
+            onClick={openCodex}
+            className="w-full py-2.5 rounded-xl bg-stone-900/90 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/40 text-stone-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Nova Run</span>
+            <BookOpen className="w-4 h-4 text-amber-400" />
+            <span>Ver Estatísticas & Compêndio</span>
           </button>
         </div>
       </motion.div>

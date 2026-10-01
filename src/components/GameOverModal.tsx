@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { RotateCcw, Skull } from 'lucide-react';
+import { RotateCcw, Skull, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const GameOverModal: React.FC = () => {
-  const { gamePhase, targetWord, round, score, streak, keys, startNewRun } = useGameStore();
+  const { gamePhase, targetWord, round, score, streak, keys, startNewRun, openCodex } = useGameStore();
 
   if (gamePhase !== 'game_over') return null;
 
@@ -78,6 +78,14 @@ export const GameOverModal: React.FC = () => {
         >
           <RotateCcw className="w-4 h-4" />
           <span>Tentar Novamente (15 Teclas)</span>
+        </button>
+
+        <button
+          onClick={openCodex}
+          className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/40 text-stone-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+        >
+          <BookOpen className="w-4 h-4 text-amber-400" />
+          <span>Ver Estatísticas & Compêndio</span>
         </button>
       </motion.div>
     </div>

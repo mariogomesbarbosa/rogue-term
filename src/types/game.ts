@@ -106,3 +106,15 @@ export interface GameStats {
   totalScore: number;
   skillsUsedCount: number;
 }
+
+export interface CareerStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  wordsSolved: number;
+  highScore: number;
+  highestSector: number;
+  maxStreak: number;
+  currentStreak: number;
+  bossesDefeated: number;
+  guessDistribution: Record<'1' | '2' | '3' | '4' | '5' | '6', number>;
+}
