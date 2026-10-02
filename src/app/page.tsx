@@ -22,6 +22,10 @@ import { NotificationToast } from '@/components/NotificationToast';
 
 const subscribe = () => () => {};
 
+if (typeof window !== 'undefined') {
+  (window as unknown as { useGameStore: unknown }).useGameStore = useGameStore;
+}
+
 export default function GamePage() {
   const mounted = useSyncExternalStore(
     subscribe,
