@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/icon.png" alt="Rogue Term Keycap Logo" width="100" />
+  <img src="assets/logo.png" alt="Rogue Term Logo" width="560" />
 </p>
-
-<h1 align="center">Rogue Term</h1>
 
 <p align="center">
   <strong>O roguelike de adivinhação de palavras com estética cyberpunk de terminal</strong>
@@ -13,7 +11,7 @@
   <img src="https://img.shields.io/badge/Next.js_16-Turbopack-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js 16">
   <img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
-  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-green?style=for-the-badge" alt="Licença MIT">
+  <img src="https://img.shields.io/badge/Licen%C3%A7a-CC_BY--NC--SA_4.0-5c6570?style=for-the-badge" alt="Licença CC BY-NC-SA 4.0">
 </p>
 
 <p align="center">
@@ -114,7 +112,12 @@ npm run build
 
 ## 📄 Licença
 
-Este projeto está sob a licença [MIT](LICENSE). Sinta-se livre para usar, estudar e contribuir.
+Este projeto está licenciado sob a **[Creative Commons Atribuição-NãoComercial-CompartilhaIgual 4.0 Internacional (CC BY-NC-SA 4.0)](LICENSE)**.
+
+- 🟢 **Permitido:** Estudo, cópia, alteração, modificação e contribuição de código para projetos pessoais e educacionais.
+- 👤 **Atribuição:** É obrigatório dar os devidos créditos ao autor original ([Mário Barbosa](https://github.com/mariogomesbarbosa)), incluir link para esta licença e indicar quaisquer alterações realizadas.
+- 🚫 **Uso Não Comercial:** O material e suas derivações **não podem** ser utilizados para finalidades comerciais ou monetização de qualquer tipo.
+- 🔁 **CompartilhaIgual:** Quaisquer trabalhos derivados devem ser distribuídos sob os mesmos termos desta licença.
 
 <p align="center">
   <sub>Desenvolvido com 💚 por <a href="https://github.com/mariogomesbarbosa">Mário Barbosa</a></sub>
